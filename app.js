@@ -509,7 +509,16 @@ const FAMILY_ID = 'beytna'
 
 function App() {
   const [tab, setTab] = useState('rules')
+  const [theme, setTheme] = useState(() =>
+    localStorage.getItem('baytuna_theme') ||
+    (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
   const store = useFamilyStore(FAMILY_ID)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('baytuna_theme', theme)
+  }, [theme])
+  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
 
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
@@ -526,6 +535,9 @@ function App() {
           <h1 class="display">بيتنا</h1>
           <span class="sync" title=${db ? 'مزامنة فورية مفعّلة' : 'محلي فقط'}>${db ? '☁️' : '💾'}</span>
         </div>
+        <button class="theme-toggle" onClick=${toggleTheme} title=${theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}>
+          ${theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </header>
 
       <main class="main">
