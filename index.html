@@ -770,8 +770,19 @@ function useFamilyStore(familyId) {
     if (!familyId) { setData(null); return }
 
     if (db) {
+      let loaded = false
       const docRef = doc(db, 'families', familyId)
+      // مؤقّت أمان: لو ما وصلت البيانات خلال ٥ ثواني، افتح محلياً ولا تعلّق
+      const timer = setTimeout(() => {
+        if (!loaded) {
+          const d = Local.read(familyId)
+          ref.current = d
+          setData(d)
+        }
+      }, 5000)
       const unsub = onSnapshot(docRef, (snap) => {
+        loaded = true
+        clearTimeout(timer)
         if (snap.exists()) {
           const d = { ...EMPTY, ...snap.data() }
           ref.current = d
@@ -782,12 +793,14 @@ function useFamilyStore(familyId) {
           setData({ ...EMPTY })
         }
       }, (err) => {
+        loaded = true
+        clearTimeout(timer)
         console.error('Firestore error — using local', err)
         const d = Local.read(familyId)
         ref.current = d
         setData(d)
       })
-      return unsub
+      return () => { clearTimeout(timer); unsub() }
     } else {
       const d = Local.read(familyId)
       ref.current = d
