@@ -483,32 +483,6 @@ function Travel({ col }) {
   `
 }
 
-/* =========================== شاشة الإعداد =========================== */
-
-function SetupScreen({ onSetup }) {
-  const [name, setName] = useState('')
-  return html`
-    <div class="setup">
-      <div class="setup-card">
-        <div class="logo">🏡</div>
-        <h1 class="display">بيتنا</h1>
-        <p class="sub">تطبيقكم المشترك ❤️</p>
-        <div class="warn">
-          <div class="t">☁️ مزامنة فورية مفعّلة</div>
-          <div class="d">اكتبوا نفس اسم البيت أنت وزوجتك على أي جهاز، وكل شي يتزامن بينكم لحظياً.</div>
-        </div>
-        <form class="setup-form" onSubmit=${e => { e.preventDefault(); if (name.trim()) onSetup(name.trim()) }}>
-          <input class="field" dir="rtl" placeholder="اسم بيتكم (مثال: بيت محمد)"
-            value=${name} onInput=${e => setName(e.target.value)} />
-          <button type="submit" class="btn btn-primary" disabled=${!name.trim()} style=${{ padding: '14px' }}>
-            ابدأ ✨
-          </button>
-        </form>
-      </div>
-    </div>
-  `
-}
-
 /* =========================== التطبيق =========================== */
 
 const TABS = [
@@ -517,23 +491,12 @@ const TABS = [
   { id: 'travel', label: 'السفر', emo: '✈️' },
 ]
 
+// معرّف البيت الثابت — التطبيق لشخصين فقط، فلا حاجة لشاشة إدخال الاسم
+const FAMILY_ID = 'beytna'
+
 function App() {
-  const [familyId, setFamilyId] = useState(() => localStorage.getItem('baytuna_family_id'))
   const [tab, setTab] = useState('rules')
-  const store = useFamilyStore(familyId)
-
-  const setup = (id) => {
-    localStorage.setItem('baytuna_family_id', id)
-    setFamilyId(id)
-  }
-  const logout = () => {
-    if (confirm('تبي تغيّر اسم البيت؟ بياناتك تبقى محفوظة.')) {
-      localStorage.removeItem('baytuna_family_id')
-      setFamilyId(null)
-    }
-  }
-
-  if (!familyId) return html`<${SetupScreen} onSetup=${setup} />`
+  const store = useFamilyStore(FAMILY_ID)
 
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
@@ -550,9 +513,6 @@ function App() {
           <h1 class="display">بيتنا</h1>
           <span class="sync" title=${db ? 'مزامنة فورية مفعّلة' : 'محلي فقط'}>${db ? '☁️' : '💾'}</span>
         </div>
-        <button class="header-fam" onClick=${logout}>
-          <span>${familyId}</span><span>⚙️</span>
-        </button>
       </header>
 
       <main class="main">
