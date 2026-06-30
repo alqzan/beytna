@@ -26,8 +26,8 @@ try {
   console.error('Firebase init failed — fallback to local', e)
 }
 
-const SECTIONS = ['rules', 'shopping', 'travel']
-const EMPTY = { rules: [], shopping: [], travel: [] }
+const SECTIONS = ['rules', 'shopping', 'travel', 'packing']
+const EMPTY = { rules: [], shopping: [], travel: [], packing: [] }
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 
 /* ---- تخزين محلي احتياطي (يُستخدم لو فشل Firebase أو بدون إنترنت) ---- */
@@ -496,12 +496,113 @@ function Travel({ col }) {
   `
 }
 
+/* =========================== ٤) تجهيزات الشنطة =========================== */
+
+function PackingList({ col }) {
+  const { items, add, update, remove, replaceAll } = col
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [fixed, setFixed] = useState(true)
+
+  const submit = () => {
+    if (!name.trim()) return
+    add({ name: name.trim(), fixed, packed: false })
+    setName('')
+    setOpen(false)
+  }
+
+  const sortPacked = (arr) => [...arr].sort((a, b) => (a.packed ? 1 : 0) - (b.packed ? 1 : 0))
+  const essentials = sortPacked(items.filter(i => i.fixed))
+  const optional = sortPacked(items.filter(i => !i.fixed))
+  const remaining = items.filter(i => !i.packed).length
+
+  const newTrip = () => {
+    if (items.length === 0) return
+    if (confirm('تبدأ تجهيز رحلة جديدة؟ بنشيل كل علامات الصح عشان تعبّي من جديد (الأغراض تبقى محفوظة).')) {
+      replaceAll(items.map(i => ({ ...i, packed: false })))
+    }
+  }
+
+  const renderGroup = (title, emo, arr) => arr.length > 0 && html`
+    <div style=${{ marginBottom: '18px' }}>
+      <div class="section-title">
+        <h3>${emo} ${title}</h3>
+        <span class="badge badge-gray">${arr.filter(i => i.packed).length}/${arr.length}</span>
+      </div>
+      <div class="list">
+        ${arr.map(it => html`
+          <div class=${'item' + (it.packed ? ' done' : '')} key=${it.id}>
+            <button class=${'check' + (it.packed ? ' on' : '')} onClick=${() => update(it.id, { packed: !it.packed })}>
+              ${it.packed ? '✓' : ''}
+            </button>
+            <div class="body"><p>${it.name}</p></div>
+            <button class="icon-x" onClick=${() => remove(it.id)}>✕</button>
+          </div>
+        `)}
+      </div>
+    </div>
+  `
+
+  return html`
+    <div class="page">
+      <div class="page-head">
+        <h2>تجهيزات الشنطة</h2>
+        ${remaining > 0 && html`<span class="badge badge-rose">${remaining} باقي</span>`}
+      </div>
+
+      ${items.length > 0 && html`
+        <button class="clear-btn" onClick=${newTrip} style=${{ color: 'var(--rose)', background: 'var(--rose-50)' }}>
+          🧳 تجهيز رحلة جديدة (تفريغ العلامات)
+        </button>
+      `}
+
+      ${items.length === 0
+        ? html`<${Empty} emo="🧳" text="أضف أغراض شنطتك" />`
+        : html`
+          ${renderGroup('أساسيات ثابتة', '📌', essentials)}
+          ${renderGroup('حسب الرحلة', '🌤️', optional)}
+        `}
+
+      <button class="fab fab-rose" onClick=${() => setOpen(true)}>+</button>
+
+      ${open && html`
+        <${Modal} title="إضافة غرض 🧳" onClose=${() => { setOpen(false); setName('') }}>
+          <input
+            class="field"
+            dir="rtl"
+            autoFocus
+            placeholder="اسم الغرض..."
+            value=${name}
+            onInput=${e => setName(e.target.value)}
+            onKeyDown=${e => e.key === 'Enter' && submit()}
+            style=${{ marginBottom: '16px' }}
+          />
+          <div class="cat-grid" style=${{ gridTemplateColumns: '1fr 1fr', marginBottom: '8px' }}>
+            <button class=${'cat-opt' + (fixed ? ' active' : '')} onClick=${() => setFixed(true)}>
+              📌<br/>أساسي ثابت
+            </button>
+            <button class=${'cat-opt' + (!fixed ? ' active' : '')} onClick=${() => setFixed(false)}>
+              🌤️<br/>حسب الرحلة
+            </button>
+          </div>
+          <p class="hint" style=${{ marginBottom: '20px' }}>الأساسيات تاخذها كل سفرة، و"حسب الرحلة" تتغيّر من وجهة لوجهة 🧳</p>
+          <div class="btn-row" style=${{ marginTop: 0 }}>
+            <button class="btn btn-primary" disabled=${!name.trim()} onClick=${submit}>إضافة</button>
+            <button class="btn btn-ghost" onClick=${() => { setOpen(false); setName('') }}>إلغاء</button>
+          </div>
+        <//>
+      `}
+    </div>
+  `
+}
+
 /* =========================== التطبيق =========================== */
 
 const TABS = [
   { id: 'rules', label: 'القواعد', emo: '💑' },
   { id: 'shopping', label: 'المقاضي', emo: '🛒' },
   { id: 'travel', label: 'السفر', emo: '✈️' },
+  { id: 'packing', label: 'الشنطة', emo: '🧳' },
 ]
 
 // معرّف البيت الثابت — التطبيق لشخصين فقط، فلا حاجة لشاشة إدخال الاسم
@@ -544,6 +645,7 @@ function App() {
         ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules')} key="rules" />`}
         ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping')} key="shopping" />`}
         ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel')} key="travel" />`}
+        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing')} key="packing" />`}
       </main>
 
       <nav class="nav">
