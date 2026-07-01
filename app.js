@@ -109,13 +109,17 @@ function useFamilyStore(familyId) {
 }
 
 // واجهة قسم واحد بنفس الـAPI القديمة (items/add/update/remove/replaceAll)
-function section(store, name) {
+// onRemove(name, prevItems, item) يُستدعى قبل الحذف لدعم التراجع
+function section(store, name, onRemove) {
   const items = (store.data && store.data[name]) || []
   return {
     items,
     add: (d) => store.updateSection(name, [...items, { id: genId(), createdAt: Date.now(), ...d }]),
     update: (id, patch) => store.updateSection(name, items.map(it => it.id === id ? { ...it, ...patch } : it)),
-    remove: (id) => store.updateSection(name, items.filter(it => it.id !== id)),
+    remove: (id) => {
+      if (onRemove) onRemove(name, items, items.find(it => it.id === id))
+      store.updateSection(name, items.filter(it => it.id !== id))
+    },
     replaceAll: (next) => store.updateSection(name, next),
   }
 }
@@ -621,12 +625,45 @@ function App() {
   }, [theme])
   const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
 
+  // ---- ارتفاع الكيبورد: نرفع النوافذ فوقه حتى لا يختفي مكان الكتابة ----
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      document.documentElement.style.setProperty('--kb', kb + 'px')
+    }
+    vv.addEventListener('resize', onResize)
+    vv.addEventListener('scroll', onResize)
+    onResize()
+    return () => { vv.removeEventListener('resize', onResize); vv.removeEventListener('scroll', onResize) }
+  }, [])
+
+  // ---- التراجع عن الحذف (١٠ ثواني) ----
+  const [undo, setUndo] = useState(null) // { section, prevItems, label }
+  const undoTimer = useRef(null)
+  const requestUndo = (name, prevItems, item) => {
+    const label = (item && (item.name || item.country || item.text)) || ''
+    setUndo({ section: name, prevItems, label })
+    clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => setUndo(null), 10000)
+  }
+  const doUndo = () => {
+    if (!undo) return
+    store.updateSection(undo.section, undo.prevItems)
+    clearTimeout(undoTimer.current)
+    setUndo(null)
+  }
+  useEffect(() => () => clearTimeout(undoTimer.current), [])
+
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
       <div class="logo">🏡</div>
       <p class="sub">جاري المزامنة... ☁️</p>
     </div></div>`
   }
+
+  const shortLabel = (s) => (s.length > 24 ? s.slice(0, 24) + '…' : s)
 
   return html`
     <div class="app">
@@ -642,11 +679,18 @@ function App() {
       </header>
 
       <main class="main">
-        ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules')} key="rules" />`}
-        ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping')} key="shopping" />`}
-        ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel')} key="travel" />`}
-        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing')} key="packing" />`}
+        ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules', requestUndo)} key="rules" />`}
+        ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping', requestUndo)} key="shopping" />`}
+        ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel', requestUndo)} key="travel" />`}
+        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing', requestUndo)} key="packing" />`}
       </main>
+
+      ${undo && html`
+        <div class="snackbar" key=${undo.prevItems.length + '-' + undo.label}>
+          <span class="snackbar-txt">🗑️ تم الحذف${undo.label ? html`: <b>${shortLabel(undo.label)}</b>` : ''}</span>
+          <button class="snackbar-btn" onClick=${doUndo}>↩︎ تراجع</button>
+        </div>
+      `}
 
       <nav class="nav">
         <div class="nav-inner">

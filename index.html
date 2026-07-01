@@ -364,14 +364,41 @@ input, textarea { font-family: 'ThmanyahSans', sans-serif; }
 .nav-btn .emo { font-size: 21px; }
 .nav-btn .lbl { font-size: 12px; font-weight: 600; }
 
+/* ====== Snackbar (تراجع الحذف) ====== */
+.snackbar {
+  position: fixed; z-index: 45;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
+  left: 50%; transform: translateX(-50%);
+  width: calc(100% - 32px); max-width: 428px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #1f2937; color: #fff; border-radius: 16px;
+  padding: 12px 14px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.28);
+  animation: rise .22s cubic-bezier(.2,.8,.2,1); overflow: hidden;
+}
+.snackbar::after {
+  content: ''; position: absolute; bottom: 0; right: 0; height: 3px; width: 100%;
+  background: var(--rose); transform-origin: right; animation: countdown 10s linear forwards;
+}
+@keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.snackbar-txt { font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snackbar-txt b { font-weight: 700; }
+.snackbar-btn {
+  flex-shrink: 0; background: rgba(255,255,255,.14); color: #fff;
+  font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 12px;
+  transition: background .15s;
+}
+.snackbar-btn:active { background: rgba(255,255,255,.28); }
+
 /* ====== Modal ====== */
 .overlay {
   position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.5);
-  display: flex; align-items: flex-end; justify-content: center; padding: 16px;
-  animation: fade .2s ease;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 16px; padding-bottom: calc(16px + var(--kb, 0px));
+  animation: fade .2s ease; transition: padding-bottom .18s ease;
 }
 .sheet {
   background: var(--card); border-radius: 26px; padding: 24px; width: 100%; max-width: 460px;
+  max-height: calc(100dvh - 32px - var(--kb, 0px)); overflow-y: auto;
   animation: rise .25s cubic-bezier(.2,.8,.2,1);
 }
 @keyframes rise { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
@@ -864,13 +891,17 @@ function useFamilyStore(familyId) {
 }
 
 // واجهة قسم واحد بنفس الـAPI القديمة (items/add/update/remove/replaceAll)
-function section(store, name) {
+// onRemove(name, prevItems, item) يُستدعى قبل الحذف لدعم التراجع
+function section(store, name, onRemove) {
   const items = (store.data && store.data[name]) || []
   return {
     items,
     add: (d) => store.updateSection(name, [...items, { id: genId(), createdAt: Date.now(), ...d }]),
     update: (id, patch) => store.updateSection(name, items.map(it => it.id === id ? { ...it, ...patch } : it)),
-    remove: (id) => store.updateSection(name, items.filter(it => it.id !== id)),
+    remove: (id) => {
+      if (onRemove) onRemove(name, items, items.find(it => it.id === id))
+      store.updateSection(name, items.filter(it => it.id !== id))
+    },
     replaceAll: (next) => store.updateSection(name, next),
   }
 }
@@ -1376,12 +1407,45 @@ function App() {
   }, [theme])
   const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
 
+  // ---- ارتفاع الكيبورد: نرفع النوافذ فوقه حتى لا يختفي مكان الكتابة ----
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      document.documentElement.style.setProperty('--kb', kb + 'px')
+    }
+    vv.addEventListener('resize', onResize)
+    vv.addEventListener('scroll', onResize)
+    onResize()
+    return () => { vv.removeEventListener('resize', onResize); vv.removeEventListener('scroll', onResize) }
+  }, [])
+
+  // ---- التراجع عن الحذف (١٠ ثواني) ----
+  const [undo, setUndo] = useState(null) // { section, prevItems, label }
+  const undoTimer = useRef(null)
+  const requestUndo = (name, prevItems, item) => {
+    const label = (item && (item.name || item.country || item.text)) || ''
+    setUndo({ section: name, prevItems, label })
+    clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => setUndo(null), 10000)
+  }
+  const doUndo = () => {
+    if (!undo) return
+    store.updateSection(undo.section, undo.prevItems)
+    clearTimeout(undoTimer.current)
+    setUndo(null)
+  }
+  useEffect(() => () => clearTimeout(undoTimer.current), [])
+
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
       <div class="logo">🏡</div>
       <p class="sub">جاري المزامنة... ☁️</p>
     </div></div>`
   }
+
+  const shortLabel = (s) => (s.length > 24 ? s.slice(0, 24) + '…' : s)
 
   return html`
     <div class="app">
@@ -1397,11 +1461,18 @@ function App() {
       </header>
 
       <main class="main">
-        ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules')} key="rules" />`}
-        ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping')} key="shopping" />`}
-        ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel')} key="travel" />`}
-        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing')} key="packing" />`}
+        ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules', requestUndo)} key="rules" />`}
+        ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping', requestUndo)} key="shopping" />`}
+        ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel', requestUndo)} key="travel" />`}
+        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing', requestUndo)} key="packing" />`}
       </main>
+
+      ${undo && html`
+        <div class="snackbar" key=${undo.prevItems.length + '-' + undo.label}>
+          <span class="snackbar-txt">🗑️ تم الحذف${undo.label ? html`: <b>${shortLabel(undo.label)}</b>` : ''}</span>
+          <button class="snackbar-btn" onClick=${doUndo}>↩︎ تراجع</button>
+        </div>
+      `}
 
       <nav class="nav">
         <div class="nav-inner">
