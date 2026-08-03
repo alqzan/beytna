@@ -26,9 +26,8 @@ try {
   console.error('Firebase init failed — fallback to local', e)
 }
 
-/* prefs = إعدادات مشتركة بين الجهازين (الفئات + المتكررات) */
-const SECTIONS = ['rules', 'shopping', 'travel', 'packing']
-const STORED = [...SECTIONS, 'prefs']
+/* prefs = إعدادات مشتركة بين الجهازين (الأقسام + الفئات + المتكررات) */
+const LEGACY = ['rules', 'shopping', 'travel', 'packing', 'prefs']
 const EMPTY = { rules: [], shopping: [], travel: [], packing: [], prefs: {} }
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 const norm = (s) => (s || '').trim().replace(/\s+/g, ' ')
@@ -37,8 +36,13 @@ const buzz = (ms = 8) => { try { navigator.vibrate && navigator.vibrate(ms) } ca
 /* ---- تخزين محلي: نسخة احتياطية دائمة تعمل بدون إنترنت ---- */
 const Local = {
   read(familyId) {
+    try {
+      const raw = localStorage.getItem(`baytuna_doc_${familyId}`)
+      if (raw) return { ...EMPTY, ...JSON.parse(raw) }
+    } catch {}
+    // توافق مع طريقة التخزين القديمة (قسم لكل مفتاح)
     const d = { ...EMPTY }
-    for (const s of STORED) {
+    for (const s of LEGACY) {
       try {
         const raw = localStorage.getItem(`baytuna_${s}_${familyId}`)
         if (raw) d[s] = JSON.parse(raw)
@@ -46,11 +50,8 @@ const Local = {
     }
     return d
   },
-  write(familyId, section, value) {
-    try { localStorage.setItem(`baytuna_${section}_${familyId}`, JSON.stringify(value)) } catch {}
-  },
   cache(familyId, data) {
-    for (const s of STORED) Local.write(familyId, s, data[s])
+    try { localStorage.setItem(`baytuna_doc_${familyId}`, JSON.stringify(data)) } catch {}
   },
 }
 
@@ -109,13 +110,29 @@ function useFamilyStore(familyId) {
     const next = { ...ref.current, [section]: value }
     ref.current = next
     setData(next) // تحديث تفاؤلي فوري
-    Local.write(familyId, section, value)
+    Local.cache(familyId, next)
     if (db) {
       updateDoc(doc(db, 'families', familyId), { [section]: value }).catch(e => console.error(e))
     }
   }
 
-  return { data, updateSection }
+  // تعديل أكثر من قسم دفعة وحدة (يستخدمه إنشاء/حذف الأقسام)
+  const updateMany = (patch) => {
+    const next = { ...ref.current, ...patch }
+    ref.current = next
+    setData(next)
+    Local.cache(familyId, next)
+    if (db) {
+      updateDoc(doc(db, 'families', familyId), patch).catch(e => console.error(e))
+    }
+  }
+
+  // تعديل الإعدادات المشتركة انطلاقاً من آخر نسخة (حتى لا نرجّع تعديل الطرف الثاني)
+  const updatePrefs = (patch, extra) => {
+    updateMany({ prefs: { ...(ref.current.prefs || {}), ...patch }, ...(extra || {}) })
+  }
+
+  return { data, updateSection, updateMany, updatePrefs }
 }
 
 // واجهة قسم واحد بنفس الـAPI القديمة (items/add/update/remove/replaceAll)
@@ -148,6 +165,23 @@ function useUI() {
   })
   return [ui, patch]
 }
+
+/* ---- الأقسام: مشتركة بين الجهازين، تقدرون تضيفون وتحذفون منها ---- */
+const DEFAULT_TABS = [
+  { id: 'rules', label: 'القواعد', title: 'قواعد زواجنا', emo: '💑', type: 'notes' },
+  { id: 'shopping', label: 'المقاضي', title: 'مقاضي البيت', emo: '🛒', type: 'shopping' },
+  { id: 'travel', label: 'السفر', title: 'سفراتنا', emo: '✈️', type: 'travel' },
+  { id: 'packing', label: 'الشنطة', title: 'تجهيزات الشنطة', emo: '🧳', type: 'packing' },
+]
+
+const SECTION_TYPES = [
+  { id: 'checklist', label: 'تشيك لست', icon: '✅', desc: 'أغراض أو مهام تعلّم عليها ✓' },
+  { id: 'shopping', label: 'مقاضي', icon: '🛒', desc: 'قائمة بفئات وكميات' },
+  { id: 'notes', label: 'ملاحظات', icon: '📝', desc: 'نصوص وقواعد تقدر تثبّتها' },
+  { id: 'travel', label: 'سفر', icon: '✈️', desc: 'وجهات وأماكن وملاحظات' },
+  { id: 'packing', label: 'شنطة', icon: '🧳', desc: 'أساسيات ثابتة + حسب الرحلة' },
+]
+const typeOf = (id) => SECTION_TYPES.find(t => t.id === id) || SECTION_TYPES[0]
 
 /* =========================== مكونات مساعدة =========================== */
 
@@ -227,9 +261,9 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
   `
 }
 
-/* =========================== ١) قواعد الزواج =========================== */
+/* =========================== ١) الملاحظات / القواعد =========================== */
 
-function MarriageRules({ col }) {
+function NotesList({ col, tab }) {
   const { items, add, update, remove } = col
   const { ask } = useApp()
   const [open, setOpen] = useState(false)
@@ -251,12 +285,12 @@ function MarriageRules({ col }) {
   return html`
     <div class="page">
       <div class="page-head">
-        <h2>قواعد زواجنا</h2>
-        <span class="badge badge-rose">${items.length} قاعدة</span>
+        <h2>${tab.title || tab.label}</h2>
+        <span class="badge badge-rose">${items.length}</span>
       </div>
 
       ${items.length === 0
-        ? html`<${Empty} emo="💌" text="أضف أول قاعدة لزواجكم" action="+ قاعدة جديدة" onAction=${() => setOpen(true)} />`
+        ? html`<${Empty} emo="💌" text=${`أضف أول ملاحظة في «${tab.label}»`} action="+ إضافة" onAction=${() => setOpen(true)} />`
         : html`
           <div class="list">
             ${sorted.map((r, i) => html`
@@ -277,13 +311,13 @@ function MarriageRules({ col }) {
       <button class="fab fab-rose" onClick=${() => setOpen(true)}>+</button>
 
       ${open && html`
-        <${Modal} title=${editing ? 'تعديل القاعدة ✏️' : 'قاعدة جديدة ✨'} onClose=${close}>
+        <${Modal} title=${editing ? 'تعديل ✏️' : 'إضافة جديدة ✨'} onClose=${close}>
           <textarea
             class="field"
             rows="4"
             dir="rtl"
             autoFocus
-            placeholder="اكتب القاعدة أو الاتفاق هنا..."
+            placeholder="اكتب هنا..."
             value=${text}
             onInput=${e => setText(e.target.value)}
           ></textarea>
@@ -293,9 +327,9 @@ function MarriageRules({ col }) {
           </div>
           ${editing && html`
             <button class="link-danger" onClick=${() => ask({
-              title: 'حذف القاعدة؟', text: editing.text, ok: 'حذف', danger: true,
+              title: 'حذف؟', text: editing.text, ok: 'حذف', danger: true,
               onOk: () => { remove(editing.id); close() }
-            })}>🗑️ حذف هذه القاعدة</button>
+            })}>🗑️ حذف</button>
           `}
         <//>
       `}
@@ -316,7 +350,7 @@ const DEFAULT_CATS = [
 const FALLBACK_CAT = { id: 'other', label: 'أخرى', icon: '📦' }
 const catOf = (cats, id) => cats.find(c => c.id === id) || FALLBACK_CAT
 
-function ShoppingList({ col }) {
+function ShoppingList({ col, tab }) {
   const { items, update, remove, replaceAll } = col
   const { cats, prefs, setPrefs, ui, setUI, ask, notify, openCats } = useApp()
 
@@ -444,14 +478,14 @@ function ShoppingList({ col }) {
 
   const listText = () => {
     const pend = items.filter(i => !i.completed)
-    if (!pend.length) return '🛒 مقاضي البيت\nما بقى شي 🎉'
+    if (!pend.length) return '🛒 ' + (tab.title || tab.label) + '\nما بقى شي 🎉'
     const byCat = new Map()
     for (const i of pend) {
       const k = i.category || 'other'
       if (!byCat.has(k)) byCat.set(k, [])
       byCat.get(k).push(i)
     }
-    const lines = ['🛒 مقاضي البيت']
+    const lines = ['🛒 ' + (tab.title || tab.label)]
     const order = [...cats.map(c => c.id), ...[...byCat.keys()].filter(k => !cats.some(c => c.id === k))]
     for (const k of order) {
       if (!byCat.has(k)) continue
@@ -478,7 +512,7 @@ function ShoppingList({ col }) {
   }
   const shareList = async () => {
     setTools(false)
-    try { await navigator.share({ title: 'مقاضي البيت', text: listText() }) } catch {}
+    try { await navigator.share({ title: tab.title || tab.label, text: listText() }) } catch {}
   }
 
   const totalCount = items.length
@@ -505,7 +539,7 @@ function ShoppingList({ col }) {
   return html`
     <div class="page">
       <div class="page-head">
-        <h2>مقاضي البيت</h2>
+        <h2>${tab.title || tab.label}</h2>
         <div class="head-acts">
           ${totalCount > 0 && html`
             <button class=${'head-btn' + (searchOn ? ' on' : '')} title="بحث"
@@ -581,7 +615,7 @@ function ShoppingList({ col }) {
         : html`
           ${grouped && groups
             ? groups.map(([c, arr]) => {
-                const key = 'cat_' + c.id
+                const key = 'cat_' + tab.id + '_' + c.id
                 const off = ui.collapsed[key]
                 return html`
                   <div class="group" key=${key}>
@@ -894,7 +928,7 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
   `
 }
 
-function Travel({ col }) {
+function Travel({ col, tab }) {
   const { items, add, update, remove } = col
   const [selId, setSelId] = useState(null)
   const [open, setOpen] = useState(false)
@@ -930,7 +964,7 @@ function Travel({ col }) {
   return html`
     <div class="page">
       <div class="page-head">
-        <h2>سفراتنا</h2>
+        <h2>${tab.title || tab.label}</h2>
         <span class="badge badge-rose">${items.length} وجهة</span>
       </div>
 
@@ -995,7 +1029,7 @@ function Travel({ col }) {
 
 /* =========================== ٤) تجهيزات الشنطة =========================== */
 
-function PackingList({ col }) {
+function PackingList({ col, tab }) {
   const { items, add, update, remove, replaceAll } = col
   const { ui, setUI, ask, notify } = useApp()
   const [open, setOpen] = useState(false)
@@ -1062,7 +1096,7 @@ function PackingList({ col }) {
   return html`
     <div class="page">
       <div class="page-head">
-        <h2>تجهيزات الشنطة</h2>
+        <h2>${tab.title || tab.label}</h2>
         <div class="head-acts">
           ${items.length > 0 && html`
             <button class=${'head-btn' + (ui.hidePacked ? ' on' : '')} title="إخفاء المعبّى"
@@ -1081,8 +1115,8 @@ function PackingList({ col }) {
       ${items.length === 0
         ? html`<${Empty} emo="🧳" text="أضف أغراض شنطتك" action="+ أول غرض" onAction=${() => setOpen(true)} />`
         : html`
-          ${renderGroup('أساسيات ثابتة', '📌', essentials, 'pack_fixed')}
-          ${renderGroup('حسب الرحلة', '🌤️', optional, 'pack_opt')}
+          ${renderGroup('أساسيات ثابتة', '📌', essentials, tab.id + '_fixed')}
+          ${renderGroup('حسب الرحلة', '🌤️', optional, tab.id + '_opt')}
         `}
 
       <button class="fab fab-rose" onClick=${() => setOpen(true)}>+</button>
@@ -1144,16 +1178,260 @@ function PackEditor({ item, onClose, onSave, onDelete }) {
   `
 }
 
-/* =========================== الإعدادات =========================== */
+/* =========================== ٥) تشيك لست (قسم عام) =========================== */
 
-function Settings({ onClose, theme, setTheme, tabs }) {
-  const { ui, setUI, openCats, notify } = useApp()
+function SimpleList({ col, tab }) {
+  const { items, update, remove, replaceAll } = col
+  const { ui, setUI, ask, notify } = useApp()
+  const [q, setQ] = useState('')
+  const [edit, setEdit] = useState(null)
+  const inputRef = useRef(null)
+  const doneKey = 'done_' + tab.id
+
+  const addMany = (names) => {
+    const next = [...items]
+    for (const raw of names) {
+      const n = norm(raw)
+      if (!n) continue
+      next.push({ id: genId(), createdAt: Date.now(), name: n, done: false })
+    }
+    if (next.length === items.length) return
+    replaceAll(next)
+    buzz()
+  }
+  const submitQuick = () => {
+    const parts = q.split(/[،,\n]+/)
+    if (!parts.some(p => norm(p))) return
+    addMany(parts)
+    setQ('')
+  }
+
+  const pending = items.filter(i => !i.done).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+  const done = items.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))
+  const off = ui.collapsed[doneKey]
+
+  const clearDone = () => {
+    const prev = items
+    const n = done.length
+    replaceAll(items.filter(i => !i.done))
+    notify(`🗑️ حذفنا ${n} عنصر`, { label: '↩︎ تراجع', run: () => replaceAll(prev) })
+  }
+  const resetAll = () => ask({
+    title: 'تفريغ العلامات؟', text: 'بنشيل كل علامات الصح والعناصر تبقى محفوظة.', ok: 'يلا',
+    onOk: () => {
+      const prev = items
+      replaceAll(items.map(i => ({ ...i, done: false })))
+      notify('✨ جاهزين من جديد', { label: '↩︎ تراجع', run: () => replaceAll(prev) })
+    },
+  })
+
+  const row = (it) => html`
+    <div class=${'item' + (it.done ? ' done' : '')} key=${it.id}>
+      <button class=${'check' + (it.done ? ' on' : '')}
+        onClick=${() => { buzz(); update(it.id, { done: !it.done, doneAt: it.done ? null : Date.now() }) }}>
+        ${it.done ? '✓' : ''}
+      </button>
+      <button class="body" onClick=${() => setEdit(it)}>
+        <p>${it.name}</p>
+        ${it.note && html`<span class="note">📝 ${it.note}</span>`}
+      </button>
+      <button class="icon-x" onClick=${() => remove(it.id)}>✕</button>
+    </div>
+  `
+
+  return html`
+    <div class="page">
+      <div class="page-head">
+        <h2>${tab.title || tab.label}</h2>
+        <div class="head-acts">
+          ${done.length > 0 && html`<button class="head-btn" title="تفريغ العلامات" onClick=${resetAll}>↺</button>`}
+          ${pending.length > 0 && html`<span class="badge badge-amber">${pending.length} باقي</span>`}
+        </div>
+      </div>
+
+      ${items.length > 0 && html`<${Progress} done=${done.length} total=${items.length} />`}
+
+      <div class="qadd">
+        <span class="qadd-cat">${tab.emo}</span>
+        <input ref=${inputRef} class="qadd-input" dir="rtl" placeholder="أضف… (افصل بفاصلة)"
+          value=${q} onInput=${e => setQ(e.target.value)}
+          onKeyDown=${e => e.key === 'Enter' && submitQuick()} />
+        <button class="qadd-go" disabled=${!norm(q)} onClick=${submitQuick}>+</button>
+      </div>
+
+      ${items.length === 0 && html`
+        <${Empty} emo=${tab.emo} text=${`«${tab.label}» فاضي — اكتب فوق وأضف`}
+          action="يلا نبدأ" onAction=${() => inputRef.current && inputRef.current.focus()} />
+      `}
+
+      ${pending.length > 0 && html`<div class="list">${pending.map(row)}</div>`}
+
+      ${items.length > 0 && pending.length === 0 && html`<div class="done-all">🎉 خلصنا كل شي!</div>`}
+
+      ${done.length > 0 && html`
+        <div class="group" style=${{ marginTop: '18px' }}>
+          <button class="group-head" onClick=${() => setUI(prev => ({ collapsed: { ...prev.collapsed, [doneKey]: !prev.collapsed[doneKey] } }))}>
+            <span class="group-title">✓ خلصت</span>
+            <span class="badge badge-gray">${done.length}</span>
+            <span class=${'caret' + (off ? '' : ' open')}>⌄</span>
+          </button>
+          ${!off && html`<div class="list">${done.map(row)}</div>`}
+        </div>
+        <button class="clear-btn" onClick=${clearDone}>🗑️ حذف المكتملة (${done.length})</button>
+      `}
+
+      ${edit && html`
+        <${SimpleEditor} item=${edit} onClose=${() => setEdit(null)}
+          onSave=${(patch) => { update(edit.id, patch); setEdit(null) }}
+          onDelete=${() => { remove(edit.id); setEdit(null) }} />
+      `}
+    </div>
+  `
+}
+
+function SimpleEditor({ item, onClose, onSave, onDelete }) {
+  const [name, setName] = useState(item.name)
+  const [note, setNote] = useState(item.note || '')
+  const save = () => norm(name) && onSave({ name: norm(name), note: norm(note) })
+  return html`
+    <${Modal} title="تعديل ✏️" onClose=${onClose}>
+      <input class="field amber" dir="rtl" autoFocus value=${name}
+        onInput=${e => setName(e.target.value)} onKeyDown=${e => e.key === 'Enter' && save()}
+        style=${{ marginBottom: '12px' }} />
+      <input class="field gray" dir="rtl" placeholder="ملاحظة (اختياري)..."
+        value=${note} onInput=${e => setNote(e.target.value)} onKeyDown=${e => e.key === 'Enter' && save()} />
+      <div class="btn-row">
+        <button class="btn btn-primary amber" disabled=${!norm(name)} onClick=${save}>حفظ</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      <button class="link-danger" onClick=${onDelete}>🗑️ حذف</button>
+    <//>
+  `
+}
+
+/* =========================== إدارة الأقسام =========================== */
+
+function SectionManager({ onClose }) {
+  const { tabs, setPrefs, store, ui, setUI, ask, notify } = useApp()
+  const [draft, setDraft] = useState({})
+  const [emo, setEmo] = useState('✅')
+  const [label, setLabel] = useState('')
+  const [type, setType] = useState('checklist')
+
   const hidden = ui.hiddenTabs || []
-  const toggleTab = (id) => {
-    const next = hidden.includes(id) ? hidden.filter(t => t !== id) : [...hidden, id]
-    if (next.length >= tabs.length) { notify('لازم يبقى قسم واحد على الأقل 🙂'); return }
+  const save = (next) => setPrefs({ tabs: next })
+  const valOf = (t) => (draft[t.id] !== undefined ? draft[t.id] : t.label)
+  const commit = (t) => {
+    const v = norm(valOf(t))
+    if (v && v !== t.label) save(tabs.map(x => x.id === t.id ? { ...x, label: v, title: v } : x))
+    setDraft(d => { const n = { ...d }; delete n[t.id]; return n })
+  }
+  const setEmoji = (id, v) => save(tabs.map(x => x.id === id ? { ...x, emo: v } : x))
+
+  const move = (i, dir) => {
+    const j = i + dir
+    if (j < 0 || j >= tabs.length) return
+    const next = [...tabs]
+    const [t] = next.splice(i, 1)
+    next.splice(j, 0, t)
+    buzz()
+    save(next)
+  }
+
+  const toggleHide = (id) => {
+    const next = hidden.includes(id) ? hidden.filter(x => x !== id) : [...hidden, id]
+    if (next.length >= tabs.length) { notify('لازم يبقى قسم واحد ظاهر 🙂'); return }
+    buzz()
     setUI({ hiddenTabs: next })
   }
+
+  const del = (t) => {
+    if (tabs.length <= 1) { notify('لازم يبقى قسم واحد على الأقل 🙂'); return }
+    ask({
+      title: `حذف قسم «${t.label}»؟`,
+      text: 'بينحذف القسم وكل اللي فيه — بس تقدر تتراجع فوراً.',
+      ok: 'حذف', danger: true,
+      onOk: () => {
+        const prevTabs = tabs
+        const prevData = (store.data && store.data[t.id]) || []
+        onClose()
+        store.updatePrefs({ tabs: tabs.filter(x => x.id !== t.id) }, { [t.id]: [] })
+        notify(`🗑️ حذفنا «${t.label}»`, {
+          label: '↩︎ تراجع',
+          run: () => store.updatePrefs({ tabs: prevTabs }, { [t.id]: prevData }),
+        })
+      },
+    })
+  }
+
+  const addSection = () => {
+    const l = norm(label)
+    if (!l) return
+    const id = 's' + genId()
+    store.updatePrefs({ tabs: [...tabs, { id, label: l, title: l, emo: norm(emo) || '📋', type }] }, { [id]: [] })
+    setLabel(''); setEmo('✅'); setType('checklist')
+    buzz()
+    notify(`✨ أضفنا قسم «${l}»`)
+  }
+
+  const reset = () => ask({
+    title: 'رجوع للأقسام الأساسية؟',
+    text: 'ترجع الأقسام الأربعة الأصلية — الأقسام اللي أضفتوها تختفي من الشريط بس بياناتها تبقى محفوظة.',
+    ok: 'رجّع', danger: true,
+    onOk: () => save(DEFAULT_TABS.map(t => ({ ...t }))),
+  })
+
+  return html`
+    <${Modal} title="الأقسام 🗂️" sub="الأقسام مشتركة بينكم — والإخفاء 👁 يخصّ جهازك فقط" onClose=${onClose}>
+      <div class="cat-rows">
+        ${tabs.map((t, i) => html`
+          <div class=${'sec-row' + (hidden.includes(t.id) ? ' off' : '')} key=${t.id}>
+            <input class="sec-emo" value=${t.emo} onInput=${e => setEmoji(t.id, e.target.value)} />
+            <div class="sec-mid">
+              <input class="cat-name" dir="rtl" value=${valOf(t)}
+                onInput=${e => { const v = e.target.value; setDraft(d => ({ ...d, [t.id]: v })) }}
+                onBlur=${() => commit(t)} />
+              <small>${typeOf(t.type).icon} ${typeOf(t.type).label}</small>
+            </div>
+            <div class="sec-acts">
+              <button class="icon-btn" title="فوق" disabled=${i === 0} onClick=${() => move(i, -1)}>↑</button>
+              <button class="icon-btn" title="تحت" disabled=${i === tabs.length - 1} onClick=${() => move(i, 1)}>↓</button>
+              <button class="icon-btn" title=${hidden.includes(t.id) ? 'إظهار' : 'إخفاء'} onClick=${() => toggleHide(t.id)}>
+                ${hidden.includes(t.id) ? '🙈' : '👁️'}
+              </button>
+              <button class="icon-x" onClick=${() => del(t)}>✕</button>
+            </div>
+          </div>
+        `)}
+      </div>
+
+      <div class="sep"></div>
+      <p class="group-lbl">قسم جديد</p>
+      <div class="row-gap" style=${{ marginBottom: '12px' }}>
+        <input class="flag-input" value=${emo} onInput=${e => setEmo(e.target.value)} />
+        <input class="field gray" dir="rtl" placeholder="اسم القسم..." value=${label}
+          onInput=${e => setLabel(e.target.value)} onKeyDown=${e => e.key === 'Enter' && addSection()} />
+      </div>
+      <div class="type-grid">
+        ${SECTION_TYPES.map(t => html`
+          <button key=${t.id} class=${'type-opt' + (type === t.id ? ' active' : '')} onClick=${() => setType(t.id)}>
+            <b>${t.icon} ${t.label}</b><small>${t.desc}</small>
+          </button>
+        `)}
+      </div>
+      <button class="btn btn-primary" style=${{ width: '100%', marginTop: '14px' }}
+        disabled=${!norm(label)} onClick=${addSection}>+ إضافة القسم</button>
+
+      <button class="link-danger" onClick=${reset}>↺ رجوع للأقسام الأساسية</button>
+    <//>
+  `
+}
+
+/* =========================== الإعدادات =========================== */
+
+function Settings({ onClose, theme, setTheme }) {
+  const { tabs, ui, openCats, openSecs } = useApp()
+  const hiddenCount = (ui.hiddenTabs || []).length
   return html`
     <${Modal} title="الإعدادات ⚙️" onClose=${onClose}>
       <p class="group-lbl">المظهر</p>
@@ -1162,14 +1440,10 @@ function Settings({ onClose, theme, setTheme, tabs }) {
         <button class=${theme === 'dark' ? 'on' : ''} onClick=${() => setTheme('dark')}>🌙 ليلي</button>
       </div>
 
-      <p class="group-lbl">الأقسام الظاهرة</p>
-      ${tabs.map(t => html`
-        <${OptRow} key=${t.id} icon=${t.emo} title=${t.label}
-          on=${!hidden.includes(t.id)} onToggle=${() => toggleTab(t.id)} />
-      `)}
-      <p class="hint">الإخفاء يخصّ جهازك فقط — الطرف الثاني ما يتأثر 👌</p>
-
-      <div class="sep"></div>
+      <p class="group-lbl">التنظيم</p>
+      <${ActRow} icon="🗂️" title="الأقسام"
+        desc=${`${tabs.length} أقسام — أضف، احذف، رتّب، أو أخفِ${hiddenCount ? ` (${hiddenCount} مخفي)` : ''}`}
+        onClick=${() => { onClose(); openSecs() }} />
       <${ActRow} icon="🏷️" title="فئات المقاضي" desc="أضف أو أخفِ فئات" onClick=${() => { onClose(); openCats() }} />
 
       <div class="sep"></div>
@@ -1179,13 +1453,6 @@ function Settings({ onClose, theme, setTheme, tabs }) {
 }
 
 /* =========================== التطبيق =========================== */
-
-const TABS = [
-  { id: 'rules', label: 'القواعد', emo: '💑' },
-  { id: 'shopping', label: 'المقاضي', emo: '🛒' },
-  { id: 'travel', label: 'السفر', emo: '✈️' },
-  { id: 'packing', label: 'الشنطة', emo: '🧳' },
-]
 
 // معرّف البيت الثابت — التطبيق لشخصين فقط، فلا حاجة لشاشة إدخال الاسم
 const FAMILY_ID = 'beytna'
@@ -1200,6 +1467,7 @@ function App() {
   const [ui, setUI] = useUI()
   const [settings, setSettings] = useState(false)
   const [catMgr, setCatMgr] = useState(false)
+  const [secMgr, setSecMgr] = useState(false)
   const [confirmBox, setConfirmBox] = useState(null)
 
   useEffect(() => {
@@ -1249,13 +1517,17 @@ function App() {
   const ask = (opts) => setConfirmBox(opts)
 
   const prefs = (store.data && store.data.prefs) || {}
-  const setPrefs = (patch) => store.updateSection('prefs', { ...prefs, ...patch })
+  const setPrefs = (patch) => store.updatePrefs(patch)
   const cats = (prefs.cats && prefs.cats.length) ? prefs.cats : DEFAULT_CATS
 
-  const visibleTabs = TABS.filter(t => !(ui.hiddenTabs || []).includes(t.id))
+  const tabs = (prefs.tabs && prefs.tabs.length) ? prefs.tabs : DEFAULT_TABS
+  const visibleTabs = tabs.filter(t => !(ui.hiddenTabs || []).includes(t.id))
+  const visibleKey = visibleTabs.map(t => t.id).join(',')
   useEffect(() => {
+    // لا نصحّح القسم المفتوح قبل ما توصل البيانات، عشان ما نضيّع آخر قسم كنت فيه
+    if (!store.data) return
     if (visibleTabs.length && !visibleTabs.some(t => t.id === tab)) setTab(visibleTabs[0].id)
-  }, [ui.hiddenTabs])
+  }, [visibleKey, !!store.data])
 
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
@@ -1264,7 +1536,25 @@ function App() {
     </div></div>`
   }
 
-  const ctx = { cats, prefs, setPrefs, ui, setUI, ask, notify, openCats: () => setCatMgr(true) }
+  const ctx = {
+    cats, prefs, setPrefs, tabs, store, ui, setUI, ask, notify,
+    openCats: () => setCatMgr(true),
+    openSecs: () => setSecMgr(true),
+  }
+
+  const active = visibleTabs.find(t => t.id === tab) || visibleTabs[0]
+  const renderSection = (t) => {
+    if (!t) return null
+    const col = section(store, t.id, requestUndo)
+    const props = { col, tab: t, key: t.id }
+    switch (t.type) {
+      case 'shopping': return html`<${ShoppingList} ...${props} />`
+      case 'travel': return html`<${Travel} ...${props} />`
+      case 'packing': return html`<${PackingList} ...${props} />`
+      case 'notes': return html`<${NotesList} ...${props} />`
+      default: return html`<${SimpleList} ...${props} />`
+    }
+  }
 
   return html`
     <${Ctx.Provider} value=${ctx}>
@@ -1284,10 +1574,7 @@ function App() {
       </header>
 
       <main class="main">
-        ${tab === 'rules' && html`<${MarriageRules} col=${section(store, 'rules', requestUndo)} key="rules" />`}
-        ${tab === 'shopping' && html`<${ShoppingList} col=${section(store, 'shopping', requestUndo)} key="shopping" />`}
-        ${tab === 'travel' && html`<${Travel} col=${section(store, 'travel', requestUndo)} key="travel" />`}
-        ${tab === 'packing' && html`<${PackingList} col=${section(store, 'packing', requestUndo)} key="packing" />`}
+        ${renderSection(active)}
       </main>
 
       ${snack && html`
@@ -1300,7 +1587,7 @@ function App() {
       `}
 
       <nav class="nav">
-        <div class="nav-inner">
+        <div class=${'nav-inner' + (visibleTabs.length > 5 ? ' scroll' : '')}>
           ${visibleTabs.map(t => html`
             <button key=${t.id} class=${'nav-btn' + (tab === t.id ? ' active' : '')} onClick=${() => { buzz(4); setTab(t.id) }}>
               ${tab === t.id && html`<span class="tab-line"></span>`}
@@ -1311,7 +1598,8 @@ function App() {
         </div>
       </nav>
 
-      ${settings && html`<${Settings} onClose=${() => setSettings(false)} theme=${theme} setTheme=${setTheme} tabs=${TABS} />`}
+      ${settings && html`<${Settings} onClose=${() => setSettings(false)} theme=${theme} setTheme=${setTheme} />`}
+      ${secMgr && html`<${SectionManager} onClose=${() => setSecMgr(false)} />`}
       ${catMgr && html`<${CategoryManager} onClose=${() => setCatMgr(false)} />`}
 
       ${confirmBox && html`
