@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>بيتنا — نسخ احتياطي من المستند القديم (قراءة فقط)</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; line-height: 1.8; color: #1f2937; }
+  h1 { font-size: 22px; }
+  .warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  .warn b { color: #b45309; }
+  .ok { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  .err { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 16px 0; color: #991b1b; }
+  button { font-size: 16px; padding: 12px 20px; border-radius: 10px; border: none; background: #e11d48; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.secondary { background: #6b7280; margin-inline-start: 10px; }
+  pre { background: #f3f4f6; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; max-height: 260px; }
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+  .steps li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <h1>🔒 نسخ احتياطي من المستند القديم <code>families/beytna</code></h1>
+
+  <div class="warn">
+    <b>⚠️ اقرأ قبل الاستخدام</b>
+    <ul class="steps">
+      <li>هذه الأداة <b>قراءة فقط</b> — لا تكتب ولا تعدّل ولا تحذف أي شيء في Firestore.</li>
+      <li>شغّلها <b>قبل</b> نشر <code>firestore.rules</code> الجديدة على Firebase Console/CLI — بعد النشر سيُقفل هذا المستند نهائياً ولن تقدر تقرأه من هنا.</li>
+      <li>لازم تشغّلها عبر خادم محلي (وليس فتح الملف مباشرة) لأنها تستورد وحدة ES module. مثال:
+        <code>npx serve .</code> من داخل مجلد المشروع، ثم افتح <code>/migration/backup-legacy-doc.html</code>.</li>
+      <li>الناتج ملفّان JSON يُحفظان على جهازك فقط — لا يُرسلان لأي خادم خارجي غير Firebase نفسه (قراءة فقط).</li>
+    </ul>
+  </div>
+
+  <button id="run">📥 قراءة المستند القديم وتنزيل نسخة احتياطية</button>
+  <div id="status"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"
+    import { buildBackup, sha256Hex } from "../lib/core.mjs"
+
+    // نفس إعداد Firebase العلني المستخدم في التطبيق — هذا ليس سراً (تصميم Firebase)،
+    // القراءة هنا تعتمد على أن قواعد الإنتاج الحالية لا تزال مفتوحة (الثغرة التي نغلقها).
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZgcI6_cVVZtE8MVRbmFZm5fkugfEvpa0",
+      authDomain: "beytna-1.firebaseapp.com",
+      projectId: "beytna-1",
+      storageBucket: "beytna-1.firebasestorage.app",
+      messagingSenderId: "620832992420",
+      appId: "1:620832992420:web:7c1d0fd075d9892d018a31"
+    }
+
+    const statusEl = document.getElementById('status')
+    const btn = document.getElementById('run')
+    const setStatus = (html, cls) => { statusEl.innerHTML = `<div class="${cls}">${html}</div>` }
+    const download = (obj, filename) => {
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob); a.download = filename
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(a.href)
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true
+      setStatus('⏳ جاري القراءة (getDoc فقط — لا كتابة)...', 'warn')
+      try {
+        const app = initializeApp(firebaseConfig)
+        const db = getFirestore(app)
+        const snap = await getDoc(doc(db, 'families', 'beytna')) // قراءة فقط، صراحة
+        if (!snap.exists()) {
+          setStatus('المستند families/beytna غير موجود أصلاً — لا شيء لنسخه.', 'err')
+          btn.disabled = false
+          return
+        }
+        const raw = snap.data()
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+
+        // ١) نسخة خام كاملة (fidelity كاملة — تشمل أي حقول أقسام مخصّصة قديمة) — للأرشفة/rollback
+        const rawChecksum = await sha256Hex(JSON.stringify(raw))
+        download({ schemaVersion: 'legacy-raw-1', exportedAt: new Date().toISOString(), familyId: 'beytna', raw, checksum: rawChecksum },
+          `beytna-legacy-RAW-backup-${stamp}.json`)
+
+        // ٢) نسخة بصيغة الاستيراد الجاهزة لواجهة التطبيق (نفس شكل buildBackup في lib/core.mjs)
+        const familyLike = { sections: { rules: raw.rules || [], travel: raw.travel || [], packing: raw.packing || [] } }
+        const shoppingItems = raw.shopping || []
+        const importReady = await buildBackup(familyLike, shoppingItems, 'beytna-legacy')
+        download(importReady, `beytna-legacy-IMPORT-READY-${stamp}.json`)
+
+        setStatus(`
+          ✅ تم تنزيل ملفّين:<br>
+          <b>1) beytna-legacy-RAW-backup-${stamp}.json</b> — نسخة خام كاملة للأرشفة.<br>
+          <b>2) beytna-legacy-IMPORT-READY-${stamp}.json</b> — استوردها من داخل التطبيق الجديد:
+          الإعدادات ⚙️ ← نسخة احتياطية 💾 ← اختيار ملف ← دمج.<br><br>
+          عدد الأغراض في المقاضي: <b>${shoppingItems.length}</b> — عدد الملاحظات: <b>${(raw.rules || []).length}</b> —
+          عدد وجهات السفر: <b>${(raw.travel || []).length}</b> — عدد أغراض الشنطة: <b>${(raw.packing || []).length}</b>
+        `, 'ok')
+      } catch (e) {
+        console.error(e)
+        setStatus('❌ فشلت القراءة: ' + (e.message || e), 'err')
+      } finally {
+        btn.disabled = false
+      }
+    })
+  </script>
+</body>
+</html>

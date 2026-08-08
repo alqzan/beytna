@@ -1,0 +1,244 @@
+rules_version = '2';
+
+/**
+ * قواعد إنتاج Firestore — بيتنا
+ * =================================================================
+ * النموذج: كل عائلة = مستند عشوائي القيمة (families/{familyId}) + عضوية
+ * صريحة (members/{uid}) + دعوات لمرة واحدة (invites/{tokenHash}).
+ *
+ * لا قراءة ولا كتابة إلا لمستخدم مصادَق (Anonymous Auth كحد أدنى) وعضو
+ * فعلي في نفس العائلة. معرفة familyId وحدها لا تكفي أبداً.
+ *
+ * راجع docs/SECURITY.md لشرح النموذج والقرارات والقيود المعروفة.
+ * =================================================================
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ------------------------------------------------------------ *
+     * أدوات مساعدة
+     * ------------------------------------------------------------ */
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(familyId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    // familyId يجب أن يكون معرّفاً عشوائياً قوياً — لا 'beytna' ولا أي قيمة قصيرة/ثابتة قابلة للتخمين.
+    function isStrongFamilyId(familyId) {
+      return familyId.matches('^[A-Za-z0-9_-]{20,64}$');
+    }
+
+    // معرّف الدعوة = SHA-256(hex) للرمز العشوائي الحقيقي — لا نخزّن الرمز نفسه أبداً.
+    function isInviteTokenHash(id) {
+      return id.matches('^[0-9a-f]{64}$');
+    }
+
+    function isTimestamp(v) {
+      return v is timestamp;
+    }
+
+    /* ------------------------------------------------------------ *
+     * المستند القديم الثابت — مقفول نهائياً بغض النظر عن أي شيء.
+     * {document=**} يطابق المستند families/beytna نفسه (صفر مقاطع إضافية)
+     * وأي مستند تحته (members/invites/shopping) لو حاول أحد إنشاءها.
+     * هذا حاجز صريح إضافي فوق كون النموذج الجديد أصلاً لا يسمح بعضوية
+     * تحت معرّف غير عشوائي (انظر isStrongFamilyId أدناه).
+     * ------------------------------------------------------------ */
+    match /families/beytna/{document=**} {
+      allow read, write: if false;
+    }
+
+    /* ------------------------------------------------------------ *
+     * مستند العائلة
+     * ------------------------------------------------------------ */
+
+    function validFamilyDoc(d) {
+      return d.keys().hasOnly(['schemaVersion', 'ownerUid', 'createdAt', 'updatedAt', 'updatedBy',
+                                'sections', 'prefs'])
+        && d.schemaVersion == 2
+        && d.ownerUid is string
+        && isTimestamp(d.createdAt)
+        && (!('updatedAt' in d) || isTimestamp(d.updatedAt))
+        && (!('updatedBy' in d) || d.updatedBy is string)
+        // sections = خريطة { sectionId: [...items] } تضم الأقسام الثابتة (rules/travel/packing)
+        // وأي أقسام مخصّصة يضيفها المستخدم. Firestore Rules لا تدعم التكرار (loop) على مفاتيح
+        // خريطة متغيرة، لذا نكتفي بحد أقصى لعدد الأقسام؛ التحقق العميق من كل قسم هو مسؤولية
+        // العميل + حجم المستند الكلي (محدود أصلاً بحد Firestore 1MiB لكل مستند). موثّق في SECURITY.md.
+        && (!('sections' in d) || (d.sections is map && d.sections.size() <= 24))
+        && (!('prefs' in d)   || validPrefs(d.prefs));
+    }
+
+    function validPrefs(p) {
+      return p is map
+        && p.keys().hasOnly(['cats', 'tabs', 'freq'])
+        && (!('cats' in p) || (p.cats is list && p.cats.size() <= 60))
+        && (!('tabs' in p) || (p.tabs is list && p.tabs.size() <= 40))
+        && (!('freq' in p) || (p.freq is map  && p.freq.size() <= 200));
+    }
+
+    match /families/{familyId} {
+      allow get: if isStrongFamilyId(familyId) && isMember(familyId);
+      allow list: if false; // ممنوع سرد/تعداد العائلات مطلقاً
+
+      allow create: if isStrongFamilyId(familyId)
+        && isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && validFamilyDoc(request.resource.data);
+
+      allow update: if isStrongFamilyId(familyId)
+        && isMember(familyId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.schemaVersion == resource.data.schemaVersion
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validFamilyDoc(request.resource.data);
+
+      allow delete: if false; // حذف العائلة كاملة ليس عبر العميل في هذه الدورة
+
+      /* -------------------------------------------------------- *
+       * العضوية
+       * -------------------------------------------------------- */
+      match /members/{uid} {
+        allow get, list: if isStrongFamilyId(familyId) && isMember(familyId);
+
+        allow create: if isStrongFamilyId(familyId)
+          && isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'role', 'joinedAt', 'deviceLabel', 'joinedViaInvite'])
+          && request.resource.data.role in ['owner', 'member']
+          && isTimestamp(request.resource.data.joinedAt)
+          && request.resource.data.deviceLabel is string
+          && request.resource.data.deviceLabel.size() >= 1
+          && request.resource.data.deviceLabel.size() <= 60
+          && (
+            // الحالة أ: إنشاء العائلة — أول عضوية لصاحب العائلة فقط
+            (
+              request.resource.data.role == 'owner'
+              && get(/databases/$(database)/documents/families/$(familyId)).data.ownerUid == request.auth.uid
+            )
+            ||
+            // الحالة ب: انضمام عبر دعوة صالحة غير مستخدمة وغير منتهية — يُستهلك أتومياً
+            // في نفس المعاملة (transaction) مع تحديث المستند invites أدناه.
+            (
+              request.resource.data.role == 'member'
+              && 'joinedViaInvite' in request.resource.data
+              && isInviteTokenHash(request.resource.data.joinedViaInvite)
+              && get(/databases/$(database)/documents/families/$(familyId)/invites/$(request.resource.data.joinedViaInvite)).data.used == false
+              && get(/databases/$(database)/documents/families/$(familyId)/invites/$(request.resource.data.joinedViaInvite)).data.expiresAt > request.time
+            )
+          );
+
+        // تسمية الجهاز فقط — لا تغيير للدور أو المالك
+        allow update: if isStrongFamilyId(familyId)
+          && isMember(familyId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deviceLabel'])
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.deviceLabel is string
+          && request.resource.data.deviceLabel.size() >= 1
+          && request.resource.data.deviceLabel.size() <= 60;
+
+        // إبطال جهاز: أي عضو حالي يقدر يحذف أي عضوية (بما فيها عضويته) — واجهة العميل تمنع حذف آخر عضو.
+        allow delete: if isStrongFamilyId(familyId) && isMember(familyId);
+      }
+
+      /* -------------------------------------------------------- *
+       * الدعوات — لا يُخزَّن رمز الدعوة نفسه أبداً، فقط SHA-256 له كمعرّف مستند.
+       * -------------------------------------------------------- */
+      match /invites/{inviteId} {
+        allow get: if isStrongFamilyId(familyId) && isSignedIn(); // لازم معرفة inviteId (الهاش) نفسه — لا سرد
+        allow list: if isStrongFamilyId(familyId) && isMember(familyId); // إدارة الدعوات لأعضاء العائلة فقط
+
+        allow create: if isStrongFamilyId(familyId)
+          && isMember(familyId)
+          && isInviteTokenHash(inviteId)
+          && request.resource.data.keys().hasOnly(['createdBy', 'createdAt', 'expiresAt', 'used', 'usedBy', 'usedAt', 'label'])
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.used == false
+          && request.resource.data.usedBy == null
+          && request.resource.data.usedAt == null
+          && isTimestamp(request.resource.data.createdAt)
+          && isTimestamp(request.resource.data.expiresAt)
+          && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt < request.time + duration.value(7, 'd')
+          && (!('label' in request.resource.data) || (request.resource.data.label is string && request.resource.data.label.size() <= 60));
+
+        allow update: if isStrongFamilyId(familyId) && (
+          // إبطال يدوي مبكر من عضو حالي (تدوير/إلغاء دعوة لم تُستخدم بعد)
+          (
+            isMember(familyId)
+            && resource.data.used == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used'])
+            && request.resource.data.used == true
+          )
+          ||
+          // استرداد الدعوة (redemption) من الجهاز المنضم — يحصل ذرّياً مع إنشاء وثيقة العضوية
+          // ضمن نفس transaction من العميل، ويُتحقق من صلاحية الدعوة وقت القراءة داخل القاعدة.
+          (
+            isSignedIn()
+            && resource.data.used == false
+            && resource.data.expiresAt > request.time
+            && request.resource.data.used == true
+            && request.resource.data.usedBy == request.auth.uid
+            && request.resource.data.usedAt == request.time
+            && request.resource.data.createdBy == resource.data.createdBy
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.expiresAt == resource.data.expiresAt
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+          )
+        );
+
+        allow delete: if isStrongFamilyId(familyId) && isMember(familyId);
+      }
+
+      /* -------------------------------------------------------- *
+       * المقاضي — سجلات مستقلة (لا استبدال مصفوفة كاملة) لمنع
+       * ضياع تعديل الطرف الآخر عند الكتابة الأخيرة.
+       * -------------------------------------------------------- */
+      match /shopping/{itemId} {
+        allow get, list: if isStrongFamilyId(familyId) && isMember(familyId);
+
+        allow create: if isStrongFamilyId(familyId)
+          && isMember(familyId)
+          && validShoppingItem(request.resource.data)
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.deletedAt == null;
+
+        allow update: if isStrongFamilyId(familyId)
+          && isMember(familyId)
+          && validShoppingItem(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedBy == request.auth.uid
+          && (request.resource.data.deletedAt == null || isTimestamp(request.resource.data.deletedAt));
+
+        allow delete: if false; // حذف صلب ممنوع — نستخدم deletedAt (tombstone) فقط
+      }
+
+      function validShoppingItem(d) {
+        return d.keys().hasOnly(['name', 'category', 'completed', 'qty', 'note',
+                                  'createdAt', 'updatedAt', 'updatedBy', 'deletedAt'])
+          && d.name is string && d.name.size() >= 1 && d.name.size() <= 200
+          && d.category is string && d.category.size() <= 40
+          && d.completed is bool
+          && d.qty is int && d.qty >= 1 && d.qty <= 999
+          && (!('note' in d) || (d.note is string && d.note.size() <= 300))
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.updatedAt);
+      }
+    }
+
+    /* ------------------------------------------------------------ *
+     * أي مسار آخر غير معرّف أعلاه: رفض صريح (توثيقي — الرفض هو
+     * السلوك الافتراضي لـ Firestore أصلاً لأي مسار غير مطابق).
+     * ------------------------------------------------------------ */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

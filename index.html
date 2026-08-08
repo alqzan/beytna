@@ -727,6 +727,59 @@ textarea.field { resize: none; line-height: 1.7; }
 /* --- شريط التنبيه --- */
 .snackbar::after { animation-duration: var(--snack-ms, 10s); }
 
+/* ====== الأمان: بدء التشغيل/الانضمام/إدارة الجهاز ====== */
+.onb-choice { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.onb-opt {
+  display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px;
+  background: var(--surface-2); text-align: right; transition: all .15s; border: 2px solid transparent;
+}
+.onb-opt:hover { border-color: var(--rose); }
+.onb-opt .ico { font-size: 26px; flex-shrink: 0; }
+.onb-opt .txt b { display: block; font-size: 15px; color: var(--ink-strong); margin-bottom: 2px; }
+.onb-opt .txt small { font-size: 12px; color: var(--ink-faint); line-height: 1.5; }
+.onb-back { font-size: 13px; color: var(--ink-faint); margin-bottom: 14px; }
+
+.invite-code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 22px; letter-spacing: 2px; text-align: center; direction: ltr;
+  background: var(--surface-2); border: 2px dashed var(--rose); border-radius: 16px;
+  padding: 16px 8px; margin: 14px 0; word-break: break-all; color: var(--ink-strong); font-weight: 700;
+}
+.invite-meta { text-align: center; font-size: 12px; color: var(--ink-faint); margin-bottom: 16px; }
+
+.member-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px;
+  background: var(--surface-2); margin-bottom: 8px;
+}
+.member-row .ico { font-size: 20px; }
+.member-row .txt { flex: 1; min-width: 0; }
+.member-row .txt b { display: block; font-size: 13px; color: var(--ink-strong); }
+.member-row .txt small { font-size: 11px; color: var(--ink-faint); }
+.member-row.me { box-shadow: 0 0 0 2px var(--rose); }
+
+.sync-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-soft);
+  border: none; flex-shrink: 0;
+}
+.sync-pill.pending { color: #b45309; background: #fffbeb; }
+.sync-pill.offline { color: #6b7280; background: var(--surface-2); }
+.sync-pill.err { color: #b91c1c; background: #fef2f2; }
+.sync-pill.synced { color: var(--green-text); background: var(--green-light); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.backup-note { font-size: 11px; color: var(--ink-faint); margin-top: 6px; line-height: 1.6; }
+.backup-note.stale { color: #b45309; }
+.file-drop {
+  border: 2px dashed var(--line-2); border-radius: 16px; padding: 18px; text-align: center;
+  font-size: 12px; color: var(--ink-faint); margin-bottom: 12px;
+}
+.import-preview {
+  background: var(--surface-2); border-radius: 14px; padding: 12px 14px; margin: 12px 0; font-size: 12px;
+  color: var(--ink-soft); line-height: 1.9;
+}
+.import-preview b { color: var(--ink-strong); }
+
 </style>
 </head>
 <body>
@@ -1036,15 +1089,25 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"
 import {
-  getFirestore, doc, onSnapshot, setDoc, updateDoc
+  initializeFirestore, persistentLocalCache, persistentSingleTabManager,
+  connectFirestoreEmulator, doc, collection, onSnapshot, getDoc, setDoc, updateDoc, deleteDoc,
+  writeBatch, serverTimestamp, Timestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"
+import {
+  getAuth, connectAuthEmulator, onAuthStateChanged, signInAnonymously,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"
+import {
+  norm, genId, randomHex, sha256Hex, unformatToken,
+  diffShoppingUpdates, buildBackup, parseBackup, planImport,
+} from "./lib/core.mjs"
 
 const { useState, useEffect, useRef, useMemo, createContext, useContext } = React
 const html = htm.bind(React.createElement)
 
 /* =========================================================================
    إعداد Firebase — المزامنة الفورية بين الأجهزة.
-   هذه المفاتيح آمنة لتكون علنية (هذا تصميم Firebase). الحماية عبر قواعد Firestore.
+   هذه المفاتيح آمنة لتكون علنية (هذا تصميم Firebase). الحماية الفعلية عبر
+   Firebase Auth + قواعد Firestore (firestore.rules) — راجع docs/SECURITY.md.
    ========================================================================= */
 const firebaseConfig = {
   apiKey: "AIzaSyDZgcI6_cVVZtE8MVRbmFZm5fkugfEvpa0",
@@ -1056,35 +1119,39 @@ const firebaseConfig = {
 }
 
 let db = null
+let auth = null
 try {
-  db = getFirestore(initializeApp(firebaseConfig))
+  const app = initializeApp(firebaseConfig)
+  // localCache دائم = "outbox" حقيقي: الكتابات أوفلاين تُحفظ وتُرسل تلقائياً عند عودة الاتصال،
+  // حتى بعد إغلاق الصفحة وإعادة فتحها — لا نعيد اختراع طابور كتابة يدوي فوق هذا.
+  db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }) })
+  auth = getAuth(app)
+
+  // ?useEmulator=1 فقط — لتطوير/اختبار محلي عبر Firebase Emulator، لا يُفعَّل أبداً تلقائياً بالإنتاج.
+  if (new URLSearchParams(location.search).has('useEmulator')) {
+    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    console.warn('⚠️ متصل بمحاكي Firebase المحلي — ليس إنتاجاً')
+  }
 } catch (e) {
-  console.error('Firebase init failed — fallback to local', e)
+  console.error('Firebase init failed', e)
+  db = null; auth = null
 }
 
-/* prefs = إعدادات مشتركة بين الجهازين (الأقسام + الفئات + المتكررات) */
-const LEGACY = ['rules', 'shopping', 'travel', 'packing', 'prefs']
-const EMPTY = { rules: [], shopping: [], travel: [], packing: [], prefs: {} }
-const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-const norm = (s) => (s || '').trim().replace(/\s+/g, ' ')
 const buzz = (ms = 8) => { try { navigator.vibrate && navigator.vibrate(ms) } catch {} }
 
-/* ---- تخزين محلي: نسخة احتياطية دائمة تعمل بدون إنترنت ---- */
+/* ---- تخزين محلي: نسخة احتياطية دائمة تعمل بدون إنترنت (مستند العائلة فقط) ---- */
+const EMPTY = { sections: { rules: [], travel: [], packing: [] }, prefs: {} }
 const Local = {
   read(familyId) {
     try {
       const raw = localStorage.getItem(`baytuna_doc_${familyId}`)
-      if (raw) return { ...EMPTY, ...JSON.parse(raw) }
+      if (raw) {
+        const d = JSON.parse(raw)
+        return { ...EMPTY, ...d, sections: { ...EMPTY.sections, ...(d.sections || {}) } }
+      }
     } catch {}
-    // توافق مع طريقة التخزين القديمة (قسم لكل مفتاح)
-    const d = { ...EMPTY }
-    for (const s of LEGACY) {
-      try {
-        const raw = localStorage.getItem(`baytuna_${s}_${familyId}`)
-        if (raw) d[s] = JSON.parse(raw)
-      } catch {}
-    }
-    return d
+    return { ...EMPTY }
   },
   cache(familyId, data) {
     try { localStorage.setItem(`baytuna_doc_${familyId}`, JSON.stringify(data)) } catch {}
@@ -1092,99 +1159,318 @@ const Local = {
 }
 
 /* =========================================================================
-   المتجر المركزي: مستند واحد لكل عائلة في Firestore (families/{familyId})
-   onSnapshot = تحديث لحظي عند أي طرف، مع نسخة محلية للعمل بدون إنترنت.
+   ١) المصادقة — Firebase Anonymous Auth كهوية جهاز/مستخدم دائمة (بلا كلمة مرور).
    ========================================================================= */
-function useFamilyStore(familyId) {
+function useAnonAuth() {
+  const [uid, setUid] = useState(null)
+  const [authReady, setAuthReady] = useState(false)
+  const [authError, setAuthError] = useState(null)
+
+  useEffect(() => {
+    if (!auth) { setAuthReady(true); return }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) { setUid(user.uid); setAuthReady(true) }
+      else {
+        signInAnonymously(auth).catch((e) => {
+          console.error('anonymous sign-in failed', e)
+          setAuthError(e); setAuthReady(true)
+        })
+      }
+    })
+    return unsub
+  }, [])
+
+  return { uid, authReady, authError }
+}
+
+/* =========================================================================
+   ٢) جلسة العائلة — عضوية صريحة، لا معرّف عائلة ثابت.
+   familyId عشوائي قوي (randomHex(16)) يُخزَّن محلياً على هذا الجهاز فقط.
+   الانضمام يمرّ حصراً عبر رمز دعوة صالح — لا يمنح العميل نفسه عضوية بمجرد
+   معرفة familyId. قواعد Firestore تُثبت الاستحقاق فعلياً (انظر firestore.rules).
+   ========================================================================= */
+const FAMILY_ID_KEY = 'baytuna_family_id'
+
+function useFamilySession(uid) {
+  const [status, setStatus] = useState('checking') // checking | onboarding | ready
+  const [familyId, setFamilyId] = useState(() => { try { return localStorage.getItem(FAMILY_ID_KEY) } catch { return null } })
+  const [members, setMembers] = useState([])
+  const [invites, setInvites] = useState([])
+
+  const clearCachedFamily = () => { try { localStorage.removeItem(FAMILY_ID_KEY) } catch {} }
+  const setFamily = (id) => { setFamilyId(id); try { localStorage.setItem(FAMILY_ID_KEY, id) } catch {} }
+
+  // تحقّق حقيقي من العضوية (لا نثق بوجود familyId محلياً وحده)
+  useEffect(() => {
+    if (!uid) return
+    if (!db) { setStatus('onboarding'); return }
+    let cancelled = false
+    ;(async () => {
+      if (!familyId) { if (!cancelled) setStatus('onboarding'); return }
+      try {
+        const snap = await getDoc(doc(db, 'families', familyId, 'members', uid))
+        if (cancelled) return
+        setStatus(snap.exists() ? 'ready' : (clearCachedFamily(), 'onboarding'))
+      } catch (e) {
+        if (cancelled) return
+        console.error('membership check failed', e)
+        clearCachedFamily()
+        setStatus('onboarding')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [uid, familyId])
+
+  useEffect(() => {
+    if (status !== 'ready' || !familyId || !db) { setMembers([]); return }
+    const unsub = onSnapshot(collection(db, 'families', familyId, 'members'), (snap) => {
+      setMembers(snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.joinedAt?.toMillis?.() || 0) - (b.joinedAt?.toMillis?.() || 0)))
+    }, (e) => console.error('members onSnapshot', e))
+    return unsub
+  }, [status, familyId])
+
+  useEffect(() => {
+    if (status !== 'ready' || !familyId || !db) { setInvites([]); return }
+    const unsub = onSnapshot(collection(db, 'families', familyId, 'invites'), (snap) => {
+      setInvites(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    }, (e) => console.error('invites onSnapshot', e))
+    return unsub
+  }, [status, familyId])
+
+  const createFamily = async (deviceLabel) => {
+    const id = randomHex(16)
+    await setDoc(doc(db, 'families', id), {
+      schemaVersion: 2, ownerUid: uid, createdAt: serverTimestamp(),
+      sections: { rules: [], travel: [], packing: [] }, prefs: {},
+    })
+    await setDoc(doc(db, 'families', id, 'members', uid), {
+      uid, role: 'owner', joinedAt: serverTimestamp(), deviceLabel: norm(deviceLabel) || 'الجهاز الأول',
+    })
+    setFamily(id)
+    return id
+  }
+
+  // fid صريح (وليس familyId من الحالة) لتفادي قراءة قيمة قديمة (stale closure) مباشرة بعد createFamily
+  const createInviteFor = async (fid, hours = 72, label = '') => {
+    const token = randomHex(16)
+    const tokenHash = await sha256Hex(token)
+    const expiresAtMs = Date.now() + hours * 3600 * 1000
+    await setDoc(doc(db, 'families', fid, 'invites', tokenHash), {
+      createdBy: uid, createdAt: serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(expiresAtMs),
+      used: false, usedBy: null, usedAt: null,
+      ...(norm(label) ? { label: norm(label) } : {}),
+    })
+    return { token, tokenHash, expiresAtMs }
+  }
+  const createInvite = (hours, label) => createInviteFor(familyId, hours, label)
+
+  const joinFamily = async (rawFamilyId, rawToken, deviceLabel) => {
+    const fid = norm(rawFamilyId)
+    const token = unformatToken(rawToken)
+    if (!fid || !token) throw new Error('رمز الدعوة ناقص أو غير صحيح')
+    const tokenHash = await sha256Hex(token)
+    const inviteRef = doc(db, 'families', fid, 'invites', tokenHash)
+    const snap = await getDoc(inviteRef)
+    if (!snap.exists()) throw new Error('رمز الدعوة غير صحيح')
+    const inv = snap.data()
+    if (inv.used) throw new Error('رمز الدعوة مستخدم من قبل')
+    if (inv.expiresAt && inv.expiresAt.toMillis() < Date.now()) throw new Error('انتهت صلاحية رمز الدعوة')
+
+    const batch = writeBatch(db)
+    batch.set(doc(db, 'families', fid, 'members', uid), {
+      uid, role: 'member', joinedAt: serverTimestamp(),
+      deviceLabel: norm(deviceLabel) || 'جهاز جديد', joinedViaInvite: tokenHash,
+    })
+    batch.update(inviteRef, { used: true, usedBy: uid, usedAt: serverTimestamp() })
+    await batch.commit() // ذرّي: إما ينضم العضو وتُستهلك الدعوة معاً، أو لا شيء منهما
+
+    setFamily(fid)
+    return fid
+  }
+
+  const revokeInvite = async (tokenHash) => { await deleteDoc(doc(db, 'families', familyId, 'invites', tokenHash)) }
+
+  const revokeMember = async (targetUid) => {
+    await deleteDoc(doc(db, 'families', familyId, 'members', targetUid))
+    if (targetUid === uid) { clearCachedFamily(); setFamilyId(null); setStatus('onboarding') }
+  }
+
+  const renameDevice = async (targetUid, label) => {
+    await updateDoc(doc(db, 'families', familyId, 'members', targetUid), { deviceLabel: norm(label) || 'جهاز' })
+  }
+
+  return {
+    status, familyId, uid, members, invites,
+    createFamily, createInvite, createInviteFor, joinFamily, revokeInvite, revokeMember, renameDevice,
+  }
+}
+
+/* =========================================================================
+   ٣) مستند العائلة: sections (rules/travel/packing + أقسام مخصّصة) + prefs.
+   المقاضي انتقلت لمجموعة فرعية مستقلة (انظر useShoppingCollection) — انظر P1.
+   ========================================================================= */
+function useFamilyStore(familyId, uid) {
   const [data, setData] = useState(null) // null = جاري التحميل
   const ref = useRef({ ...EMPTY })
 
   useEffect(() => {
-    if (!familyId) { setData(null); return }
-
-    if (db) {
-      let loaded = false
-      const docRef = doc(db, 'families', familyId)
-      // مؤقّت أمان: لو ما وصلت البيانات خلال ٥ ثواني، افتح بالنسخة المحلية ولا تعلّق
-      const timer = setTimeout(() => {
-        if (!loaded) {
-          const d = Local.read(familyId)
-          ref.current = d
-          setData(d)
-        }
-      }, 5000)
-      const unsub = onSnapshot(docRef, (snap) => {
-        loaded = true
-        clearTimeout(timer)
-        if (snap.exists()) {
-          const d = { ...EMPTY, ...snap.data() }
-          ref.current = d
-          setData(d)
-          Local.cache(familyId, d) // نسخة احتياطية لكل تحديث
-        } else {
-          setDoc(docRef, { ...EMPTY }).catch(e => console.error(e))
-          ref.current = { ...EMPTY }
-          setData({ ...EMPTY })
-        }
-      }, (err) => {
-        loaded = true
-        clearTimeout(timer)
-        console.error('Firestore error — using local', err)
-        const d = Local.read(familyId)
-        ref.current = d
-        setData(d)
-      })
-      return () => { clearTimeout(timer); unsub() }
-    } else {
-      const d = Local.read(familyId)
-      ref.current = d
-      setData(d)
-    }
+    if (!familyId || !db) { setData(null); return }
+    let loaded = false
+    const docRef = doc(db, 'families', familyId)
+    const timer = setTimeout(() => {
+      if (!loaded) { const d = Local.read(familyId); ref.current = d; setData(d) }
+    }, 5000)
+    const unsub = onSnapshot(docRef, (snap) => {
+      loaded = true; clearTimeout(timer)
+      if (snap.exists()) {
+        const raw = snap.data()
+        const d = { ...EMPTY, ...raw, sections: { ...EMPTY.sections, ...(raw.sections || {}) } }
+        ref.current = d; setData(d); Local.cache(familyId, d)
+      } else {
+        console.error('family doc missing for', familyId)
+      }
+    }, (err) => {
+      loaded = true; clearTimeout(timer)
+      console.error('Firestore error — using local', err)
+      const d = Local.read(familyId); ref.current = d; setData(d)
+    })
+    return () => { clearTimeout(timer); unsub() }
   }, [familyId])
 
-  const updateSection = (section, value) => {
-    const next = { ...ref.current, [section]: value }
-    ref.current = next
-    setData(next) // تحديث تفاؤلي فوري
-    Local.cache(familyId, next)
+  const updateSection = (name, value) => {
+    const next = { ...ref.current, sections: { ...ref.current.sections, [name]: value } }
+    ref.current = next; setData(next); Local.cache(familyId, next)
     if (db) {
-      updateDoc(doc(db, 'families', familyId), { [section]: value }).catch(e => console.error(e))
+      updateDoc(doc(db, 'families', familyId), {
+        [`sections.${name}`]: value, updatedAt: serverTimestamp(), updatedBy: uid,
+      }).catch((e) => console.error(e))
     }
   }
 
-  // تعديل أكثر من قسم دفعة وحدة (يستخدمه إنشاء/حذف الأقسام)
+  // تعديل أكثر من قسم/مفتاح دفعة وحدة — يقبل مفاتيح منقّطة مثل 'sections.travel'
   const updateMany = (patch) => {
-    const next = { ...ref.current, ...patch }
-    ref.current = next
-    setData(next)
-    Local.cache(familyId, next)
+    const next = { ...ref.current }
+    for (const [k, v] of Object.entries(patch)) {
+      if (k.startsWith('sections.')) next.sections = { ...next.sections, [k.slice(9)]: v }
+      else next[k] = v
+    }
+    ref.current = next; setData(next); Local.cache(familyId, next)
     if (db) {
-      updateDoc(doc(db, 'families', familyId), patch).catch(e => console.error(e))
+      updateDoc(doc(db, 'families', familyId), { ...patch, updatedAt: serverTimestamp(), updatedBy: uid })
+        .catch((e) => console.error(e))
     }
   }
 
-  // تعديل الإعدادات المشتركة انطلاقاً من آخر نسخة (حتى لا نرجّع تعديل الطرف الثاني)
-  const updatePrefs = (patch, extra) => {
-    updateMany({ prefs: { ...(ref.current.prefs || {}), ...patch }, ...(extra || {}) })
+  const updatePrefs = (patch, extraSections) => {
+    const merged = { prefs: { ...(ref.current.prefs || {}), ...patch } }
+    if (extraSections) for (const [k, v] of Object.entries(extraSections)) merged['sections.' + k] = v
+    updateMany(merged)
   }
 
   return { data, updateSection, updateMany, updatePrefs }
 }
 
 // واجهة قسم واحد بنفس الـAPI القديمة (items/add/update/remove/replaceAll)
-// onRemove(name, prevItems, item) يُستدعى قبل الحذف لدعم التراجع
 function section(store, name, onRemove) {
-  const items = (store.data && store.data[name]) || []
+  const items = (store.data && store.data.sections && store.data.sections[name]) || []
   return {
     items,
     add: (d) => store.updateSection(name, [...items, { id: genId(), createdAt: Date.now(), ...d }]),
-    update: (id, patch) => store.updateSection(name, items.map(it => it.id === id ? { ...it, ...patch } : it)),
+    update: (id, patch) => store.updateSection(name, items.map((it) => it.id === id ? { ...it, ...patch } : it)),
     remove: (id) => {
-      if (onRemove) onRemove(name, items, items.find(it => it.id === id))
-      store.updateSection(name, items.filter(it => it.id !== id))
+      if (onRemove) onRemove(name, items, items.find((it) => it.id === id))
+      store.updateSection(name, items.filter((it) => it.id !== id))
     },
     replaceAll: (next) => store.updateSection(name, next),
   }
+}
+
+/* =========================================================================
+   ٤) المقاضي — سجلات مستقلة (subcollection) بدل استبدال مصفوفة كاملة (P1).
+   نفس واجهة section() {items, update, remove, replaceAll} حتى لا نغيّر
+   مكوّنات الواجهة (ShoppingList/ItemEditor) — فقط الطبقة الأدنى تغيّرت.
+   حالة المزامنة صادقة: مبنية على snapshot.metadata الفعلي من Firestore،
+   لا مجرد "بدأ SDK".
+   ========================================================================= */
+function useShoppingCollection(familyId, uid) {
+  const [items, setItems] = useState([]) // بدون المحذوف حذفاً ناعماً
+  const [syncState, setSyncState] = useState('loading') // loading|offline|pending|cached|synced|error
+  const [writeError, setWriteError] = useState(null) // { retry() } — لفشل دائم (صلاحيات مثلاً) لا يغطيه طابور Firestore
+  const allRef = useRef([]) // يشمل المحذوف حذفاً ناعماً — لازم لتمييز "استرجاع" عن "إنشاء جديد"
+
+  useEffect(() => {
+    if (!familyId || !db) { setItems([]); return }
+    const colRef = collection(db, 'families', familyId, 'shopping')
+    const unsub = onSnapshot(colRef, { includeMetadataChanges: true }, (snap) => {
+      const full = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      allRef.current = full
+      const visible = full.filter((it) => !it.deletedAt)
+      setItems(visible)
+      setSyncState(
+        !navigator.onLine ? 'offline'
+        : snap.metadata.hasPendingWrites ? 'pending'
+        : snap.metadata.fromCache ? 'cached'
+        : 'synced'
+      )
+    }, (err) => { console.error('shopping onSnapshot', err); setSyncState('error') })
+    const onOnline = () => setSyncState((s) => (s === 'offline' ? 'pending' : s))
+    const onOffline = () => setSyncState('offline')
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => { unsub(); window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) }
+  }, [familyId])
+
+  const itemRef = (id) => doc(db, 'families', familyId, 'shopping', id)
+
+  const onWriteError = (e, retry) => {
+    console.error('shopping write failed', e)
+    setWriteError({ retry: async () => { setWriteError(null); await retry() } })
+  }
+
+  const update = async (id, patch) => {
+    const cur = items.find((it) => it.id === id)
+    if (!cur) return
+    const next = { ...cur, ...patch }
+    setItems((prev) => prev.map((it) => it.id === id ? next : it))
+    try {
+      await updateDoc(itemRef(id), {
+        name: next.name, category: next.category || 'other', completed: !!next.completed,
+        qty: next.qty || 1, note: next.note || '',
+        updatedAt: serverTimestamp(), updatedBy: uid,
+      })
+    } catch (e) { onWriteError(e, () => update(id, patch)) }
+  }
+
+  const remove = async (id) => {
+    setItems((prev) => prev.filter((it) => it.id !== id))
+    try {
+      await updateDoc(itemRef(id), { deletedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: uid })
+    } catch (e) { onWriteError(e, () => remove(id)) }
+  }
+
+  // إضافة/حذف عدة عناصر دفعة وحدة (addMany، clearDone، clearAll) — فرق بدل استبدال كامل
+  const replaceAll = async (next) => {
+    setItems(next)
+    const { creates, updates, softDeletes } = diffShoppingUpdates(allRef.current, next)
+    if (!creates.length && !updates.length && !softDeletes.length) return
+    const batch = writeBatch(db)
+    for (const c of creates) {
+      const { id, ...payload } = c
+      batch.set(itemRef(id), { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: uid, deletedAt: null })
+    }
+    for (const u of updates) {
+      const { id, ...payload } = u
+      batch.set(itemRef(id), { ...payload, updatedAt: serverTimestamp(), updatedBy: uid, deletedAt: null }, { merge: true })
+    }
+    for (const d of softDeletes) {
+      batch.update(itemRef(d.id), { deletedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: uid })
+    }
+    try { await batch.commit() } catch (e) { onWriteError(e, () => replaceAll(next)) }
+  }
+
+  return { items, update, remove, replaceAll, syncState, writeError }
 }
 
 /* ---- تفضيلات العرض: محليّة لكل جهاز (ما تنعكس على الطرف الثاني) ---- */
@@ -2383,13 +2669,14 @@ function SectionManager({ onClose }) {
 
   const del = (t) => {
     if (tabs.length <= 1) { notify('لازم يبقى قسم واحد على الأقل 🙂'); return }
+    if (t.id === 'shopping') { notify('قسم المقاضي الأساسي ما ينحذف — تقدر تخفيه فقط 🙂'); return }
     ask({
       title: `حذف قسم «${t.label}»؟`,
       text: 'بينحذف القسم وكل اللي فيه — بس تقدر تتراجع فوراً.',
       ok: 'حذف', danger: true,
       onOk: () => {
         const prevTabs = tabs
-        const prevData = (store.data && store.data[t.id]) || []
+        const prevData = (store.data && store.data.sections && store.data.sections[t.id]) || []
         onClose()
         store.updatePrefs({ tabs: tabs.filter(x => x.id !== t.id) }, { [t.id]: [] })
         notify(`🗑️ حذفنا «${t.label}»`, {
@@ -2455,6 +2742,7 @@ function SectionManager({ onClose }) {
           </button>
         `)}
       </div>
+      <p class="hint" style=${{ marginTop: '10px' }}>ملاحظة: أقسام "مقاضي" المخصّصة تُخزَّن حالياً كقائمة واحدة، بدون حماية تعارض الجهازين الإضافية اللي عند قسم "المقاضي" الأساسي.</p>
       <button class="btn btn-primary" style=${{ width: '100%', marginTop: '14px' }}
         disabled=${!norm(label)} onClick=${addSection}>+ إضافة القسم</button>
 
@@ -2466,7 +2754,7 @@ function SectionManager({ onClose }) {
 /* =========================== الإعدادات =========================== */
 
 function Settings({ onClose, theme, setTheme }) {
-  const { tabs, ui, openCats, openSecs } = useApp()
+  const { tabs, ui, openCats, openSecs, openFamily, openBackup, session } = useApp()
   const hiddenCount = (ui.hiddenTabs || []).length
   return html`
     <${Modal} title="الإعدادات ⚙️" onClose=${onClose}>
@@ -2483,27 +2771,374 @@ function Settings({ onClose, theme, setTheme }) {
       <${ActRow} icon="🏷️" title="فئات المقاضي" desc="أضف أو أخفِ فئات" onClick=${() => { onClose(); openCats() }} />
 
       <div class="sep"></div>
+      <p class="group-lbl">الأمان والبيانات</p>
+      <${ActRow} icon="🔐" title="بيتك وأجهزتك" desc=${`${session.members.length} جهاز — دعوة، إبطال`}
+        onClick=${() => { onClose(); openFamily() }} />
+      <${ActRow} icon="💾" title="نسخة احتياطية" desc="تصدير/استيراد ملف JSON" onClick=${() => { onClose(); openBackup() }} />
+
+      <div class="sep"></div>
       <p class="hint">${db ? '☁️ المزامنة الفورية شغالة بين الجهازين' : '💾 حالياً محلي على هذا الجهاز فقط'}</p>
     <//>
   `
 }
 
+/* =========================== بدء التشغيل: إنشاء/انضمام عائلة =========================== */
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true }
+  catch {
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove()
+      return true
+    } catch { return false }
+  }
+}
+
+function InviteReveal({ code, expiresAtMs, onContinue }) {
+  const [copied, setCopied] = useState(false)
+  const doCopy = async () => { if (await copyText(code)) { setCopied(true); setTimeout(() => setCopied(false), 2000) } }
+  const hours = Math.max(1, Math.round((expiresAtMs - Date.now()) / 3600000))
+  return html`
+    <div class="setup">
+      <div class="setup-card">
+        <div class="logo">🎉</div>
+        <h1 style=${{ fontSize: '26px' }}>تم إنشاء بيتك</h1>
+        <p class="sub">شارك هالرمز مع شريكك عشان ينضم من جهازه</p>
+        <div class="invite-code">${code}</div>
+        <p class="invite-meta">صالح ${hours} ساعة — يُستخدم مرة واحدة فقط</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" onClick=${doCopy}>${copied ? '✓ تم النسخ' : '📋 نسخ الرمز'}</button>
+          ${navigator.share && html`
+            <button class="btn btn-ghost" onClick=${() => navigator.share({ title: 'دعوة بيتنا', text: code }).catch(() => {})}>📤 مشاركة</button>
+          `}
+        </div>
+        <button class="btn btn-primary" style=${{ width: '100%', marginTop: '18px' }} onClick=${onContinue}>متابعة إلى بيتنا 🏡</button>
+        <p class="hint" style=${{ marginTop: '14px' }}>تقدر تسوّي رمزاً جديداً لاحقاً من الإعدادات ← بيتك وأجهزتك</p>
+      </div>
+    </div>
+  `
+}
+
+function Onboarding({ session, setHold }) {
+  const [step, setStep] = useState('choice') // choice | create | join | reveal
+  const [label, setLabel] = useState('')
+  const [joinCode, setJoinCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [invite, setInvite] = useState(null)
+
+  if (!db) {
+    return html`
+      <div class="setup"><div class="setup-card">
+        <div class="logo">📡</div>
+        <h1 style=${{ fontSize: '24px' }}>ما فيه اتصال</h1>
+        <p class="sub">بيتنا يحتاج إنترنت أول مرة لإنشاء أو الانضمام لبيت — بعدها يشتغل حتى بدون نت.</p>
+      </div></div>
+    `
+  }
+
+  const doCreate = async () => {
+    setBusy(true); setErr(''); setHold(true)
+    try {
+      const fid = await session.createFamily(label)
+      const inv = await session.createInviteFor(fid, 72)
+      setInvite({ code: `${fid}.${inv.token}`, expiresAtMs: inv.expiresAtMs })
+      setStep('reveal')
+    } catch (e) {
+      console.error(e)
+      setErr('صار خطأ في الإنشاء — تأكد من الإنترنت وحاول ثانية')
+      setHold(false)
+    } finally { setBusy(false) }
+  }
+
+  const doJoin = async () => {
+    setBusy(true); setErr('')
+    const raw = norm(joinCode)
+    const dot = raw.indexOf('.')
+    if (dot < 0) { setErr('صيغة الرمز غير صحيحة — انسخه كامل من الجهاز الأول'); setBusy(false); return }
+    try {
+      await session.joinFamily(raw.slice(0, dot).trim(), raw.slice(dot + 1).trim(), label)
+    } catch (e) {
+      console.error(e)
+      setErr(e.message || 'ما قدرنا ننضم — تأكد من الرمز وحاول ثانية')
+    } finally { setBusy(false) }
+  }
+
+  if (step === 'reveal' && invite) {
+    return html`<${InviteReveal} code=${invite.code} expiresAtMs=${invite.expiresAtMs} onContinue=${() => setHold(false)} />`
+  }
+
+  if (step === 'choice') {
+    return html`
+      <div class="setup"><div class="setup-card">
+        <div class="logo">🏡</div>
+        <h1>بيتنا</h1>
+        <p class="sub">مساحتكم الخاصة — عضوية صريحة، ما فيه وصول عام</p>
+        <div class="onb-choice">
+          <button class="onb-opt" onClick=${() => setStep('create')}>
+            <span class="ico">✨</span>
+            <span class="txt"><b>بيت جديد</b><small>أول مرة تستخدمون بيتنا — أنشئ بيتك وادعُ شريكك</small></span>
+          </button>
+          <button class="onb-opt" onClick=${() => setStep('join')}>
+            <span class="ico">🔑</span>
+            <span class="txt"><b>الانضمام لبيت موجود</b><small>عندك رمز دعوة من شريكك؟ انضم من هنا</small></span>
+          </button>
+        </div>
+      </div></div>
+    `
+  }
+
+  if (step === 'create') {
+    return html`
+      <div class="setup"><div class="setup-card">
+        <button class="onb-back" onClick=${() => setStep('choice')}>→ رجوع</button>
+        <div class="logo">✨</div>
+        <h1 style=${{ fontSize: '26px' }}>بيت جديد</h1>
+        <p class="sub">سمّ جهازك (اختياري) عشان تميّزه لاحقاً</p>
+        <div class="setup-form">
+          <input class="field" dir="rtl" placeholder="مثلاً: جهاز أحمد" value=${label}
+            onInput=${e => setLabel(e.target.value)} onKeyDown=${e => e.key === 'Enter' && !busy && doCreate()} />
+          ${err && html`<p class="warn"><span class="d">${err}</span></p>`}
+          <button class="btn btn-primary" style=${{ width: '100%' }} disabled=${busy} onClick=${doCreate}>
+            ${busy ? 'جاري الإنشاء...' : '+ إنشاء بيتنا'}
+          </button>
+        </div>
+      </div></div>
+    `
+  }
+
+  // step === 'join'
+  return html`
+    <div class="setup"><div class="setup-card">
+      <button class="onb-back" onClick=${() => setStep('choice')}>→ رجوع</button>
+      <div class="logo">🔑</div>
+      <h1 style=${{ fontSize: '26px' }}>الانضمام لبيت</h1>
+      <p class="sub">الصق رمز الدعوة اللي وصلك من شريكك</p>
+      <div class="setup-form">
+        <textarea class="field" dir="ltr" rows="2" style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '13px' }}
+          placeholder="الصق الرمز هنا..." value=${joinCode} onInput=${e => setJoinCode(e.target.value)}></textarea>
+        <input class="field" dir="rtl" placeholder="اسم جهازك (اختياري)" value=${label} onInput=${e => setLabel(e.target.value)} />
+        ${err && html`<p class="warn"><span class="d">${err}</span></p>`}
+        <button class="btn btn-primary" style=${{ width: '100%' }} disabled=${busy || !norm(joinCode)} onClick=${doJoin}>
+          ${busy ? 'جاري الانضمام...' : 'انضمام'}
+        </button>
+      </div>
+    </div></div>
+  `
+}
+
+/* =========================== بيتك وأجهزتك (عضوية/دعوات) =========================== */
+
+function FamilyManager({ onClose }) {
+  const { session, notify, ask } = useApp()
+  const [busy, setBusy] = useState(false)
+  const [newInvite, setNewInvite] = useState(null)
+  const [copied, setCopied] = useState(false)
+
+  const activeInvites = session.invites.filter((i) => !i.used && (!i.expiresAt || i.expiresAt.toMillis() > Date.now()))
+
+  const makeInvite = async () => {
+    setBusy(true)
+    try {
+      const inv = await session.createInvite(72)
+      setNewInvite({ code: `${session.familyId}.${inv.token}` })
+      setCopied(false)
+    } catch (e) { console.error(e); notify('صار خطأ — حاول ثانية') } finally { setBusy(false) }
+  }
+  const doCopy = async (text) => { if (await copyText(text)) { setCopied(true); notify('📋 تم النسخ') } }
+
+  const revoke = (m) => ask({
+    title: `إبطال «${m.deviceLabel}»؟`,
+    text: m.uid === session.uid ? 'هذا جهازك الحالي — بتحتاج دعوة جديدة عشان ترجع.' : 'هذا الجهاز بيفقد الوصول فوراً ولازم دعوة جديدة عشان يرجع.',
+    ok: 'إبطال', danger: true,
+    onOk: async () => {
+      try { await session.revokeMember(m.uid); notify('🔒 تم إبطال الجهاز') }
+      catch (e) { console.error(e); notify('ما قدرنا نبطل الجهاز') }
+    },
+  })
+
+  const revokeAnInvite = async (tokenHash) => {
+    try { await session.revokeInvite(tokenHash) } catch (e) { console.error(e); notify('ما قدرنا نلغي الدعوة') }
+  }
+
+  return html`
+    <${Modal} title="بيتك وأجهزتك 🔐" sub="عضوية صريحة — لا أحد يدخل بدون دعوة" onClose=${onClose}>
+      <p class="group-lbl">الأجهزة (${session.members.length})</p>
+      ${session.members.map((m) => html`
+        <div class=${'member-row' + (m.uid === session.uid ? ' me' : '')} key=${m.uid}>
+          <span class="ico">${m.role === 'owner' ? '👑' : '📱'}</span>
+          <div class="txt">
+            <b>${m.deviceLabel}${m.uid === session.uid ? ' (هذا الجهاز)' : ''}</b>
+            <small>${m.role === 'owner' ? 'أنشأ البيت' : 'انضم بدعوة'}</small>
+          </div>
+          <button class="icon-x" onClick=${() => revoke(m)}>✕</button>
+        </div>
+      `)}
+
+      <div class="sep"></div>
+      <p class="group-lbl">دعوة جهاز جديد</p>
+      ${newInvite
+        ? html`
+          <div class="invite-code">${newInvite.code}</div>
+          <p class="invite-meta">صالحة ٧٢ ساعة — تُستخدم مرة واحدة فقط</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" onClick=${() => doCopy(newInvite.code)}>${copied ? '✓ تم النسخ' : '📋 نسخ'}</button>
+            ${navigator.share && html`<button class="btn btn-ghost" onClick=${() => navigator.share({ text: newInvite.code }).catch(() => {})}>📤 مشاركة</button>`}
+          </div>
+          <button class="link-danger" onClick=${() => setNewInvite(null)}>تم</button>
+        `
+        : html`
+          ${activeInvites.length > 0 && html`
+            <div style=${{ marginBottom: '10px' }}>
+              ${activeInvites.map((i) => html`
+                <div class="member-row" key=${i.id}>
+                  <span class="ico">🔗</span>
+                  <div class="txt"><b>دعوة سارية</b><small>تنتهي ${i.expiresAt ? new Date(i.expiresAt.toMillis()).toLocaleString('ar') : ''}</small></div>
+                  <button class="icon-x" onClick=${() => revokeAnInvite(i.id)}>✕</button>
+                </div>
+              `)}
+            </div>
+          `}
+          <button class="btn btn-primary" style=${{ width: '100%' }} disabled=${busy} onClick=${makeInvite}>+ إنشاء رمز دعوة</button>
+        `}
+    <//>
+  `
+}
+
+/* =========================== نسخة احتياطية: تصدير/استيراد =========================== */
+
+function BackupManager({ onClose }) {
+  const { store, shoppingCol, familyId, notify } = useApp()
+  const [busy, setBusy] = useState(false)
+  const [importPreview, setImportPreview] = useState(null) // { parsed, mode }
+  const [importErr, setImportErr] = useState('')
+  const fileRef = useRef(null)
+
+  const lastBackupKey = 'baytuna_last_backup_' + familyId
+  const lastBackup = (() => { try { return Number(localStorage.getItem(lastBackupKey)) || 0 } catch { return 0 } })()
+  const daysSince = lastBackup ? Math.floor((Date.now() - lastBackup) / 86400000) : null
+
+  const doExport = async () => {
+    setBusy(true)
+    try {
+      const payload = await buildBackup(store.data, shoppingCol.items, familyId)
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `beytna-backup-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(a.href)
+      try { localStorage.setItem(lastBackupKey, String(Date.now())) } catch {}
+      notify('💾 صدّرنا نسخة احتياطية')
+    } catch (e) { console.error(e); notify('ما قدرنا نصدّر — حاول ثانية') } finally { setBusy(false) }
+  }
+
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setImportErr(''); setImportPreview(null)
+    try {
+      const text = await file.text()
+      const parsed = await parseBackup(text)
+      setImportPreview({ parsed, mode: 'merge' })
+    } catch (err) {
+      setImportErr(err.message || 'ملف غير صالح')
+    }
+  }
+
+  const doImport = async () => {
+    if (!importPreview) return
+    setBusy(true)
+    try {
+      const { sectionPatches, shoppingNext } = planImport(
+        store.data.sections, shoppingCol.items, importPreview.parsed.data, importPreview.mode
+      )
+      for (const [key, arr] of Object.entries(sectionPatches)) store.updateSection(key, arr)
+      if (shoppingNext) await shoppingCol.replaceAll(shoppingNext)
+      notify('✅ تم الاستيراد')
+      setImportPreview(null)
+      onClose()
+    } catch (e) { console.error(e); notify('صار خطأ أثناء الاستيراد') } finally { setBusy(false) }
+  }
+
+  const d = importPreview?.parsed?.data
+
+  return html`
+    <${Modal} title="نسخة احتياطية 💾" sub="ملف JSON على جهازك — لا يمر بأي خادم خارجي" onClose=${onClose}>
+      <p class="group-lbl">تصدير</p>
+      <button class="btn btn-primary" style=${{ width: '100%' }} disabled=${busy} onClick=${doExport}>⬇️ تنزيل نسخة الآن</button>
+      <p class=${'backup-note' + (daysSince !== null && daysSince > 14 ? ' stale' : '')}>
+        ${lastBackup ? `آخر نسخة احتياطية على هذا الجهاز: قبل ${daysSince === 0 ? 'أقل من يوم' : daysSince + ' يوم'}` : 'ما فيه نسخة احتياطية بعد من هذا الجهاز'}
+      </p>
+
+      <div class="sep"></div>
+      <p class="group-lbl">استيراد</p>
+      <input ref=${fileRef} type="file" accept="application/json" style=${{ display: 'none' }} onChange=${onFile} />
+      <button class="btn btn-ghost" style=${{ width: '100%' }} onClick=${() => fileRef.current && fileRef.current.click()}>📂 اختيار ملف نسخة احتياطية</button>
+      ${importErr && html`<p class="warn"><span class="t">ما قدرنا نقرأ الملف</span><span class="d">${importErr}</span></p>`}
+
+      ${importPreview && html`
+        <div class="import-preview">
+          <div><b>تاريخ النسخة:</b> ${new Date(importPreview.parsed.exportedAt).toLocaleString('ar')}</div>
+          <div><b>مقاضي:</b> ${d.shopping?.length || 0} غرض</div>
+          <div><b>ملاحظات:</b> ${d.sections?.rules?.length || 0}</div>
+          <div><b>سفر:</b> ${d.sections?.travel?.length || 0} وجهة</div>
+          <div><b>شنطة:</b> ${d.sections?.packing?.length || 0} غرض</div>
+        </div>
+        <div class="seg" style=${{ marginBottom: '14px' }}>
+          <button class=${importPreview.mode === 'merge' ? 'on' : ''} onClick=${() => setImportPreview(p => ({ ...p, mode: 'merge' }))}>دمج مع الحالي</button>
+          <button class=${importPreview.mode === 'replace' ? 'on' : ''} onClick=${() => setImportPreview(p => ({ ...p, mode: 'replace' }))}>استبدال كامل</button>
+        </div>
+        ${importPreview.mode === 'replace' && html`<p class="warn"><span class="t">تنبيه</span><span class="d">الاستبدال بيمسح المقاضي والأقسام الحالية ويحطّ محلها محتوى الملف — ما ينرجع إلا من نسخة احتياطية ثانية.</span></p>`}
+        <button class="btn btn-primary" style=${{ width: '100%' }} disabled=${busy} onClick=${doImport}>تأكيد الاستيراد</button>
+      `}
+    <//>
+  `
+}
+
+/* =========================== حالة المزامنة (صادقة، لا مجرد أيقونة ثابتة) =========================== */
+
+function SyncPill({ state, writeError, onRetry }) {
+  if (!db) return html`<span class="sync-pill">💾 محلي فقط</span>`
+  if (writeError) return html`<button class="sync-pill err" onClick=${onRetry}><span class="sync-dot"></span> فشل الحفظ — إعادة المحاولة</button>`
+  const map = {
+    loading: { cls: '', txt: '⏳ جاري...' },
+    offline: { cls: 'offline', txt: '📡 بلا اتصال — محفوظ محلياً' },
+    pending: { cls: 'pending', txt: '💾 جاري الحفظ...' },
+    cached: { cls: 'pending', txt: '💾 محفوظ محلياً' },
+    synced: { cls: 'synced', txt: '☁️ متزامن' },
+    error: { cls: 'err', txt: '⚠️ خطأ مزامنة' },
+  }
+  const s = map[state] || map.loading
+  return html`<span class=${'sync-pill ' + s.cls}><span class="sync-dot"></span> ${s.txt}</span>`
+}
+
 /* =========================== التطبيق =========================== */
 
-// معرّف البيت الثابت — التطبيق لشخصين فقط، فلا حاجة لشاشة إدخال الاسم
-const FAMILY_ID = 'beytna'
-
 function App() {
+  const { uid, authReady, authError } = useAnonAuth()
+  const session = useFamilySession(uid)
+  const [holdOnboarding, setHoldOnboarding] = useState(false)
+
   const [tab, setTabState] = useState(() => localStorage.getItem('baytuna_tab') || 'shopping')
   const setTab = (id) => { setTabState(id); try { localStorage.setItem('baytuna_tab', id) } catch {} }
   const [theme, setTheme] = useState(() =>
     localStorage.getItem('baytuna_theme') ||
     (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
-  const store = useFamilyStore(FAMILY_ID)
+
+  const isReady = session.status === 'ready' && !holdOnboarding
+  const store = useFamilyStore(isReady ? session.familyId : null, uid)
+  const shoppingCol = useShoppingCollection(isReady ? session.familyId : null, uid)
+
   const [ui, setUI] = useUI()
   const [settings, setSettings] = useState(false)
   const [catMgr, setCatMgr] = useState(false)
   const [secMgr, setSecMgr] = useState(false)
+  const [familyMgr, setFamilyMgr] = useState(false)
+  const [backupMgr, setBackupMgr] = useState(false)
   const [confirmBox, setConfirmBox] = useState(null)
 
   useEffect(() => {
@@ -2560,11 +3195,22 @@ function App() {
   const visibleTabs = tabs.filter(t => !(ui.hiddenTabs || []).includes(t.id))
   const visibleKey = visibleTabs.map(t => t.id).join(',')
   useEffect(() => {
-    // لا نصحّح القسم المفتوح قبل ما توصل البيانات، عشان ما نضيّع آخر قسم كنت فيه
     if (!store.data) return
     if (visibleTabs.length && !visibleTabs.some(t => t.id === tab)) setTab(visibleTabs[0].id)
   }, [visibleKey, !!store.data])
 
+  if (!authReady) {
+    return html`<div class="setup"><div class="setup-card"><div class="logo">🏡</div><p class="sub">جاري التحقق... ☁️</p></div></div>`
+  }
+  if (authError) {
+    return html`<div class="setup"><div class="setup-card">
+      <div class="logo">⚠️</div><h1 style=${{ fontSize: '22px' }}>تعذّر الاتصال</h1>
+      <p class="sub">تأكد من الإنترنت وأعد فتح الصفحة</p>
+    </div></div>`
+  }
+  if (!isReady) {
+    return html`<${Onboarding} session=${session} setHold=${setHoldOnboarding} />`
+  }
   if (!store.data) {
     return html`<div class="setup"><div class="setup-card">
       <div class="logo">🏡</div>
@@ -2573,15 +3219,20 @@ function App() {
   }
 
   const ctx = {
-    cats, prefs, setPrefs, tabs, store, ui, setUI, ask, notify,
+    cats, prefs, setPrefs, tabs, store, ui, setUI, ask, notify, session, shoppingCol, familyId: session.familyId,
     openCats: () => setCatMgr(true),
     openSecs: () => setSecMgr(true),
+    openFamily: () => setFamilyMgr(true),
+    openBackup: () => setBackupMgr(true),
   }
 
   const active = visibleTabs.find(t => t.id === tab) || visibleTabs[0]
   const renderSection = (t) => {
     if (!t) return null
-    const col = section(store, t.id, requestUndo)
+    const isDefaultShopping = t.id === 'shopping' && t.type === 'shopping'
+    const col = isDefaultShopping
+      ? { items: shoppingCol.items, update: shoppingCol.update, remove: shoppingCol.remove, replaceAll: shoppingCol.replaceAll }
+      : section(store, t.id, requestUndo)
     const props = { col, tab: t, key: t.id }
     switch (t.type) {
       case 'shopping': return html`<${ShoppingList} ...${props} />`
@@ -2599,9 +3250,9 @@ function App() {
         <div class="header-brand">
           <span class="logo">🏡</span>
           <h1 class="display">بيتنا</h1>
-          <span class="sync" title=${db ? 'مزامنة فورية مفعّلة' : 'محلي فقط'}>${db ? '☁️' : '💾'}</span>
         </div>
         <div class="header-acts">
+          <${SyncPill} state=${shoppingCol.syncState} writeError=${shoppingCol.writeError} onRetry=${() => shoppingCol.writeError && shoppingCol.writeError.retry()} />
           <button class="theme-toggle" onClick=${toggleTheme} title=${theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}>
             ${theme === 'dark' ? '☀️' : '🌙'}
           </button>
@@ -2637,6 +3288,8 @@ function App() {
       ${settings && html`<${Settings} onClose=${() => setSettings(false)} theme=${theme} setTheme=${setTheme} />`}
       ${secMgr && html`<${SectionManager} onClose=${() => setSecMgr(false)} />`}
       ${catMgr && html`<${CategoryManager} onClose=${() => setCatMgr(false)} />`}
+      ${familyMgr && html`<${FamilyManager} onClose=${() => setFamilyMgr(false)} />`}
+      ${backupMgr && html`<${BackupManager} onClose=${() => setBackupMgr(false)} />`}
 
       ${confirmBox && html`
         <${Modal} title=${confirmBox.title} onClose=${() => setConfirmBox(null)}>
@@ -2656,7 +3309,6 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`)
-
 </script>
 </body>
 </html>

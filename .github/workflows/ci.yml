@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ملاحظة: هذا الملف يعرّف الفحوصات فقط. لمنع الدمج فعلياً قبل نجاحها،
+# يحتاج مسؤول المستودع تفعيل "Require status checks to pass" في
+# Settings → Branches → Branch protection rules لفرع main، ويختار
+# الوظائف أدناه (lint-build-unit, rules-tests, smoke-tests). هذا إعداد
+# لا يمكن تفعيله من داخل هذا الفرع نفسه.
+
+jobs:
+  lint-build-unit:
+    name: lint + typecheck(n/a) + unit + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run build
+
+  rules-tests:
+    name: Firebase Emulator security rules tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run test:rules
+
+  smoke-tests:
+    name: Playwright smoke test (create/join/sync/revoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:smoke
