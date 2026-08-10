@@ -1,0 +1,23 @@
+{
+  "name": "beytna",
+  "private": true,
+  "version": "2.0.0",
+  "description": "بيتنا — تطبيق زوجين. أدوات أمان/اختبار/ترحيل للمستودع. التطبيق نفسه ثابت (index.html) بدون أداة بناء بعد.",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "test:unit": "vitest run tests/unit",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-beytna \"vitest run tests/rules\"",
+    "test:smoke": "firebase emulators:exec --only firestore,auth --project demo-beytna \"node tests/smoke/run.mjs\"",
+    "test": "npm run test:unit && npm run test:rules",
+    "build": "node scripts/build-check.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "eslint": "^9.13.0",
+    "firebase": "^10.12.5",
+    "firebase-tools": "^13.35.1",
+    "playwright": "^1.62.1",
+    "vitest": "^2.1.4"
+  }
+}

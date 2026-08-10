@@ -1,0 +1,9 @@
+node_modules/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.log
+.firebase/
+migration/out/
+migration/*.json
+!migration/*.example.json
