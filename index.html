@@ -830,6 +830,126 @@ textarea.field { resize: none; line-height: 1.7; }
   border: 2px dashed var(--line-2); border-radius: 16px; padding: 18px; text-align: center;
   font-size: 12px; color: var(--ink-faint); margin-bottom: 12px;
 }
+
+/* ====== السفر المتقدم + لوحة اليوم ====== */
+.travel-extra-card {
+  background: var(--card); border-radius: 21px; padding: 16px;
+  box-shadow: var(--shadow); margin: 20px 0 14px;
+}
+.travel-empty.compact { padding: 20px 12px; box-shadow: none; background: var(--surface-2); }
+.travel-empty.compact > div { font-size: 32px; }
+.travel-extra-card > .add-dashed { margin-top: 10px; }
+.date-time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.date-time-grid > div { min-width: 0; }
+.mini-select { border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); border-radius: 10px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
+.travel-days-list, .travel-budget-list, .travel-bookings-list, .travel-map-list { display: flex; flex-direction: column; gap: 8px; }
+.travel-day-card { background: var(--surface-2); border-radius: 16px; padding: 11px; }
+.travel-day-head, .travel-budget-item, .travel-booking-row, .travel-map-row { display: flex; align-items: center; gap: 8px; }
+.travel-day-head { justify-content: space-between; gap: 10px; }
+.travel-day-head > div:first-child { min-width: 0; text-align: right; }
+.travel-day-head b, .travel-day-head small { display: block; }
+.travel-day-head b { color: var(--ink); font-size: 13px; }
+.travel-day-head small { color: var(--ink-faint); font-size: 10px; margin-top: 3px; }
+.travel-day-items { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; }
+.travel-day-item { display: flex; align-items: flex-start; gap: 7px; padding: 7px; background: var(--card); border-radius: 12px; }
+.travel-day-item.done { opacity: .62; }
+.travel-day-item.done b { text-decoration: line-through; }
+.travel-day-main, .travel-budget-main, .travel-booking-main { flex: 1; min-width: 0; text-align: right; }
+.travel-day-main { display: flex; align-items: flex-start; gap: 8px; }
+.travel-day-main b, .travel-day-main small, .travel-budget-main b, .travel-budget-main small, .travel-booking-main b, .travel-booking-main small { display: block; }
+.travel-day-main b, .travel-budget-main b, .travel-booking-main b { color: var(--ink); font-size: 12px; }
+.travel-day-main small, .travel-budget-main small, .travel-booking-main small { color: var(--ink-faint); font-size: 10px; line-height: 1.5; margin-top: 2px; }
+.travel-day-time { direction: ltr; min-width: 39px; color: var(--rose-dark); font-size: 11px; font-weight: 700; }
+.travel-budget-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 4px 0 12px; }
+.travel-budget-summary > div { background: var(--surface-2); border-radius: 12px; padding: 8px 4px; text-align: center; min-width: 0; }
+.travel-budget-summary b, .travel-budget-summary small { display: block; }
+.travel-budget-summary b { color: var(--ink-strong); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.travel-budget-summary small { color: var(--ink-faint); font-size: 10px; margin-top: 3px; }
+.travel-budget-item { padding: 8px; background: var(--surface-2); border-radius: 13px; }
+.travel-budget-item.done { opacity: .62; }
+.travel-budget-item.done .travel-budget-main b { text-decoration: line-through; }
+.travel-budget-main { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.travel-budget-main strong { color: var(--rose-dark); font-size: 12px; direction: ltr; white-space: nowrap; }
+.travel-booking-row { padding: 9px; background: var(--surface-2); border-radius: 13px; }
+.travel-booking-icon { width: 31px; height: 31px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--card); font-size: 17px; flex-shrink: 0; }
+.travel-booking-main { line-height: 1.35; }
+.travel-booking-main small + small { margin-top: 1px; }
+.travel-map-row { padding: 9px; background: var(--surface-2); border-radius: 13px; text-decoration: none; }
+.travel-map-row > span:first-child { font-size: 18px; flex-shrink: 0; }
+.travel-map-row > span:nth-child(2) { flex: 1; min-width: 0; text-align: right; }
+.travel-map-row b, .travel-map-row small { display: block; }
+.travel-map-row b { color: var(--ink); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.travel-map-row small { color: var(--ink-faint); font-size: 10px; margin-top: 2px; }
+.travel-map-row strong { color: var(--blue-text); font-size: 10px; white-space: nowrap; }
+.booking-type-grid { grid-template-columns: repeat(3, 1fr); }
+
+.dashboard-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(135deg, var(--rose-light), var(--amber-light)); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
+.dashboard-hero h2 { color: var(--ink-strong); font-size: 25px; margin-top: 3px; }
+.dashboard-hero p { color: var(--ink-soft); font-size: 12px; margin-top: 4px; }
+.dashboard-heart { font-size: 46px; filter: drop-shadow(0 7px 8px rgba(0,0,0,.08)); }
+.eyebrow { color: var(--rose-dark); font-size: 11px; font-weight: 700; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 12px; }
+.dashboard-stat { background: var(--card); border-radius: 15px; padding: 10px 4px; box-shadow: var(--shadow); }
+.dashboard-stat b, .dashboard-stat small { display: block; }
+.dashboard-stat b { color: var(--rose-dark); font-size: 19px; }
+.dashboard-stat small { color: var(--ink-faint); font-size: 10px; margin-top: 3px; }
+.dashboard-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+.dashboard-action { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 15px; background: var(--card); color: var(--ink-soft); box-shadow: var(--shadow); font-size: 20px; }
+.dashboard-action span { font-size: 11px; font-weight: 700; }
+.dashboard-card { background: var(--card); border-radius: 21px; padding: 15px; box-shadow: var(--shadow); margin-bottom: 12px; }
+.dashboard-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.dashboard-card-head h3 { color: var(--ink-strong); font-size: 16px; }
+.dashboard-card-head small { color: var(--ink-faint); font-size: 10px; display: block; margin-top: 3px; }
+.text-btn { color: var(--rose-dark); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.dashboard-list-card { display: flex; flex-direction: column; gap: 6px; }
+.dashboard-item { display: flex; align-items: center; gap: 8px; padding: 9px; background: var(--surface-2); border-radius: 12px; text-align: right; }
+.dashboard-item > span:first-child { font-size: 16px; flex-shrink: 0; }
+.dashboard-item b, .dashboard-item small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-item b { flex: 1; color: var(--ink); font-size: 12px; }
+.dashboard-item small { color: var(--ink-faint); font-size: 10px; max-width: 120px; }
+.dashboard-item.clickable { width: 100%; }
+.dashboard-empty { text-align: center; color: var(--ink-faint); background: var(--surface-2); border-radius: 13px; padding: 14px 10px; font-size: 12px; line-height: 1.6; }
+.full-btn { width: 100%; margin-bottom: 12px; }
+.task-row, .reminder-row { display: flex; align-items: flex-start; gap: 8px; padding: 9px; background: var(--surface-2); border-radius: 13px; }
+.task-row.done, .reminder-row.done { opacity: .6; }
+.task-row.done .task-main b, .reminder-row.done .task-main b { text-decoration: line-through; }
+.task-main { flex: 1; min-width: 0; text-align: right; }
+.task-main b, .task-main small { display: block; }
+.task-main b { color: var(--ink); font-size: 13px; }
+.task-main small { color: var(--ink-faint); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+.task-main small + small { margin-top: 2px; }
+.assignee-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px; }
+.assignee-pick button { padding: 9px 4px; border-radius: 12px; background: var(--surface-2); color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+.assignee-pick button.active { background: var(--rose-light); color: var(--rose-dark); box-shadow: 0 0 0 2px var(--rose); }
+.reminder-due { color: var(--rose-dark) !important; font-weight: 700; }
+.reminder-overdue { color: var(--danger) !important; font-weight: 700; }
+.vote-list, .template-list { display: flex; flex-direction: column; gap: 10px; }
+.vote-card { background: var(--surface-2); border-radius: 16px; padding: 11px; }
+.vote-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.vote-head b { color: var(--ink-strong); font-size: 14px; line-height: 1.5; }
+.vote-option { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 11px; background: var(--card); margin-top: 5px; text-align: right; }
+.vote-option.selected { box-shadow: 0 0 0 2px var(--rose); }
+.vote-option > span:first-child { color: var(--ink); font-size: 12px; flex: 1; min-width: 0; }
+.vote-result { width: 105px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.vote-result i { display: block; height: 6px; border-radius: 99px; background: var(--rose); min-width: 0; }
+.vote-result small { color: var(--ink-faint); font-size: 9px; direction: ltr; white-space: nowrap; }
+.vote-total { display: block; color: var(--ink-faint); font-size: 10px; text-align: center; margin-top: 8px; }
+.template-card { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 15px; background: var(--surface-2); text-align: right; }
+.template-icon { font-size: 26px; flex-shrink: 0; }
+.template-card > span:nth-child(2) { flex: 1; min-width: 0; }
+.template-card b, .template-card small, .template-card em { display: block; }
+.template-card b { color: var(--ink-strong); font-size: 13px; }
+.template-card small { color: var(--ink-faint); font-size: 10px; margin-top: 2px; }
+.template-card em { color: var(--rose-dark); font-size: 10px; font-style: normal; margin-top: 4px; }
+.template-card strong { color: var(--rose-dark); font-size: 11px; white-space: nowrap; }
+.search-results { display: flex; flex-direction: column; gap: 6px; }
+.search-result { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px; border-radius: 13px; background: var(--surface-2); text-align: right; }
+.search-result > span:first-child { font-size: 18px; flex-shrink: 0; }
+.search-result > span:nth-child(2) { flex: 1; min-width: 0; }
+.search-result b, .search-result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result b { color: var(--ink); font-size: 12px; }
+.search-result small { color: var(--ink-faint); font-size: 10px; margin-top: 2px; }
+.search-result strong { color: var(--rose-dark); font-size: 10px; white-space: nowrap; }
 .import-preview {
   background: var(--surface-2); border-radius: 14px; padding: 12px 14px; margin: 12px 0; font-size: 12px;
   color: var(--ink-soft); line-height: 1.9;
@@ -1197,7 +1317,7 @@ try {
 const buzz = (ms = 8) => { try { navigator.vibrate && navigator.vibrate(ms) } catch {} }
 
 /* ---- تخزين محلي: نسخة احتياطية دائمة تعمل بدون إنترنت (مستند العائلة فقط) ---- */
-const EMPTY = { sections: { rules: [], travel: [], packing: [] }, prefs: {} }
+const EMPTY = { sections: { rules: [], travel: [], packing: [], tasks: [], reminders: [], votes: [] }, prefs: {} }
 const Local = {
   read(familyId) {
     try {
@@ -1298,7 +1418,7 @@ function useFamilySession(uid) {
     const id = randomHex(16)
     await setDoc(doc(db, 'families', id), {
       schemaVersion: 2, ownerUid: uid, createdAt: serverTimestamp(),
-      sections: { rules: [], travel: [], packing: [] }, prefs: {},
+      sections: { rules: [], travel: [], packing: [], tasks: [], reminders: [], votes: [] }, prefs: {},
     })
     await setDoc(doc(db, 'families', id, 'members', uid), {
       uid, role: 'owner', joinedAt: serverTimestamp(), deviceLabel: norm(deviceLabel) || 'الجهاز الأول',
@@ -1553,6 +1673,7 @@ function useUI() {
 
 /* ---- الأقسام: مشتركة بين الجهازين، تقدرون تضيفون وتحذفون منها ---- */
 const DEFAULT_TABS = [
+  { id: 'today', label: 'اليوم', title: 'يومنا', emo: '☀️', type: 'dashboard' },
   { id: 'rules', label: 'القواعد', title: 'قواعد زواجنا', emo: '💑', type: 'notes' },
   { id: 'shopping', label: 'المقاضي', title: 'مقاضي البيت', emo: '🛒', type: 'shopping' },
   { id: 'travel', label: 'السفر', title: 'سفراتنا', emo: '✈️', type: 'travel' },
@@ -2201,6 +2322,28 @@ const PLACE_TYPES = {
   other: { label: 'أخرى', icon: '📌' },
 }
 
+const BOOKING_TYPES = {
+  flight: { label: 'طيران', icon: '✈️' },
+  hotel: { label: 'سكن', icon: '🏨' },
+  restaurant: { label: 'مطعم', icon: '🍽️' },
+  activity: { label: 'نشاط', icon: '🎟️' },
+  transport: { label: 'مواصلات', icon: '🚕' },
+  other: { label: 'أخرى', icon: '🎫' },
+}
+
+const TRAVEL_CURRENCIES = ['SAR', 'USD', 'EUR', 'TRY', 'AED']
+const travelDateLabel = (value) => {
+  if (!value) return 'بدون تاريخ'
+  try { return new Date(`${value}T00:00:00`).toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' }) }
+  catch { return value }
+}
+const travelMoney = (value, currency = 'SAR') => {
+  const amount = Number(value) || 0
+  try { return new Intl.NumberFormat('ar-SA', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount) }
+  catch { return `${amount.toLocaleString('ar-SA')} ${currency}` }
+}
+const travelDateSort = (a, b) => (a?.date || '9999-99-99').localeCompare(b?.date || '9999-99-99')
+
 const LEGACY_CITY_ID = '__legacy_places__'
 const cleanTravelText = (value) => (value || '').toString().trim()
 
@@ -2397,6 +2540,138 @@ function PlaceEditor({ city, place, onClose, onSave, onDelete }) {
   `
 }
 
+function DayEditor({ day, cities, onClose, onSave, onDelete }) {
+  const editing = !!day
+  const [date, setDate] = useState(day?.date || '')
+  const [title, setTitle] = useState(day?.title || '')
+  const [cityId, setCityId] = useState(day?.cityId || '')
+  const save = () => {
+    const clean = norm(title) || (date ? `يوم ${date}` : 'يوم جديد')
+    onSave({ ...(day || {}), id: day?.id || genId(), date, title: clean, cityId: cityId || '', items: Array.isArray(day?.items) ? day.items : [] })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل يوم ✏️' : 'إضافة يوم 📅'} sub="رتّبوا برنامج كل يوم والمدينة المرتبطة به" onClose=${onClose}>
+      <p class="field-label">التاريخ (اختياري)</p>
+      <input class="field" type="date" dir="ltr" value=${date} onInput=${e => setDate(e.target.value)} />
+      <p class="field-label">اسم اليوم</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: اليوم الأول — الوصول" value=${title} onInput=${e => setTitle(e.target.value)} />
+      <p class="field-label">المدينة (اختياري)</p>
+      <select class="field" value=${cityId} onChange=${e => setCityId(e.target.value)}>
+        <option value="">بدون مدينة محددة</option>
+        ${cities.filter(city => !city.legacy).map(city => html`<option key=${city.id} value=${city.id}>${city.name}</option>`)}
+      </select>
+      <div class="btn-row">
+        <button class="btn btn-primary" onClick=${save}>${editing ? 'حفظ اليوم' : 'إضافة اليوم'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف اليوم</button>`}
+    <//>
+  `
+}
+
+function DayItemEditor({ item, onClose, onSave, onDelete }) {
+  const editing = !!item
+  const [time, setTime] = useState(item?.time || '')
+  const [title, setTitle] = useState(item?.title || '')
+  const [note, setNote] = useState(item?.note || '')
+  const [done, setDone] = useState(!!item?.done)
+  const save = () => {
+    const clean = norm(title)
+    if (!clean) return
+    onSave({ ...(item || {}), id: item?.id || genId(), time, title: clean, note: cleanTravelText(note), done })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل فقرة ✏️' : 'إضافة فقرة لليوم'} sub="مكان، موعد، مطعم أو ملاحظة صغيرة" onClose=${onClose}>
+      <div class="date-time-grid">
+        <div><p class="field-label">الوقت (اختياري)</p><input class="field" type="time" dir="ltr" value=${time} onInput=${e => setTime(e.target.value)} /></div>
+        <div><p class="field-label">العنوان</p><input class="field" dir="rtl" autoFocus placeholder="مثلاً: فطور ثم برج غلطة" value=${title} onInput=${e => setTitle(e.target.value)} /></div>
+      </div>
+      <p class="field-label">ملاحظة</p>
+      <textarea class="field" rows="3" dir="rtl" placeholder="الحجز، العنوان، المواصلات..." value=${note} onInput=${e => setNote(e.target.value)}></textarea>
+      <button class=${'travel-visited-toggle' + (done ? ' active' : '')} onClick=${() => setDone(v => !v)}><span>${done ? '✓' : '○'}</span> ${done ? 'تم التنفيذ' : 'لم ينفذ بعد'}</button>
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!norm(title)} onClick=${save}>${editing ? 'حفظ' : 'إضافة'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف الفقرة</button>`}
+    <//>
+  `
+}
+
+function BudgetItemEditor({ item, currency, onClose, onSave, onDelete }) {
+  const editing = !!item
+  const [title, setTitle] = useState(item?.title || '')
+  const [amount, setAmount] = useState(item?.amount ?? '')
+  const [category, setCategory] = useState(item?.category || 'عام')
+  const [note, setNote] = useState(item?.note || '')
+  const [paid, setPaid] = useState(!!item?.paid)
+  const save = () => {
+    const clean = norm(title)
+    if (!clean || !Number.isFinite(Number(amount))) return
+    onSave({ ...(item || {}), id: item?.id || genId(), title: clean, amount: Number(amount), category: norm(category) || 'عام', note: cleanTravelText(note), paid })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل بند الميزانية ✏️' : 'إضافة بند للميزانية 💰'} sub=${`المبلغ بالعملة ${currency}`} onClose=${onClose}>
+      <p class="field-label">البند</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: الفندق أو تذاكر الطيران" value=${title} onInput=${e => setTitle(e.target.value)} />
+      <div class="date-time-grid">
+        <div><p class="field-label">المبلغ</p><input class="field" type="number" min="0" step="0.01" dir="ltr" placeholder="0" value=${amount} onInput=${e => setAmount(e.target.value)} /></div>
+        <div><p class="field-label">التصنيف</p><input class="field" dir="rtl" placeholder="سكن، أكل..." value=${category} onInput=${e => setCategory(e.target.value)} /></div>
+      </div>
+      <p class="field-label">ملاحظة (اختياري)</p>
+      <input class="field" dir="rtl" placeholder="تفاصيل أو رابط الفاتورة" value=${note} onInput=${e => setNote(e.target.value)} />
+      <button class=${'travel-visited-toggle' + (paid ? ' active' : '')} onClick=${() => setPaid(v => !v)}><span>${paid ? '✓' : '○'}</span> ${paid ? 'تم الدفع' : 'غير مدفوع'}</button>
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!norm(title) || !Number.isFinite(Number(amount))} onClick=${save}>${editing ? 'حفظ' : 'إضافة'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف البند</button>`}
+    <//>
+  `
+}
+
+function BookingEditor({ booking, onClose, onSave, onDelete }) {
+  const editing = !!booking
+  const [type, setType] = useState(BOOKING_TYPES[booking?.type] ? booking.type : 'other')
+  const [title, setTitle] = useState(booking?.title || '')
+  const [date, setDate] = useState(booking?.date || '')
+  const [confirmation, setConfirmation] = useState(booking?.confirmation || '')
+  const [url, setUrl] = useState(booking?.url || '')
+  const [note, setNote] = useState(booking?.note || '')
+  const [error, setError] = useState('')
+  const save = () => {
+    const clean = norm(title)
+    if (!clean) return
+    const safe = cleanTravelText(url) ? safeTravelUrl(url) : ''
+    if (cleanTravelText(url) && !safe) { setError('الرابط غير صحيح'); return }
+    onSave({ ...(booking || {}), id: booking?.id || genId(), type, title: clean, date, confirmation: cleanTravelText(confirmation), url: safe, note: cleanTravelText(note) })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل الحجز ✏️' : 'إضافة حجز 🎫'} sub="احفظوا تفاصيل الحجز ورابطه في نفس الرحلة" onClose=${onClose}>
+      <p class="field-label">نوع الحجز</p>
+      <div class="travel-type-grid booking-type-grid">
+        ${Object.entries(BOOKING_TYPES).map(([key, meta]) => html`<button key=${key} class=${'travel-type-opt' + (type === key ? ' active' : '')} onClick=${() => setType(key)}><span>${meta.icon}</span>${meta.label}</button>`)}
+      </div>
+      <p class="field-label">العنوان</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: فندق إسطنبول" value=${title} onInput=${e => setTitle(e.target.value)} />
+      <div class="date-time-grid">
+        <div><p class="field-label">التاريخ</p><input class="field" type="date" dir="ltr" value=${date} onInput=${e => setDate(e.target.value)} /></div>
+        <div><p class="field-label">رقم التأكيد</p><input class="field" dir="ltr" placeholder="اختياري" value=${confirmation} onInput=${e => setConfirmation(e.target.value)} /></div>
+      </div>
+      <p class="field-label">الرابط (اختياري)</p>
+      <input class="field link-url" dir="ltr" type="url" placeholder="https://..." value=${url} onInput=${e => { setUrl(e.target.value); setError('') }} />
+      <p class="field-label">ملاحظة</p>
+      <textarea class="field" rows="3" dir="rtl" placeholder="وقت الوصول، سياسة الإلغاء..." value=${note} onInput=${e => setNote(e.target.value)}></textarea>
+      ${error && html`<p class="form-error">${error}</p>`}
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!norm(title)} onClick=${save}>${editing ? 'حفظ الحجز' : 'إضافة الحجز'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف الحجز</button>`}
+    <//>
+  `
+}
+
 function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
   const { ask } = useApp()
   const cities = travelCitiesOf(dest)
@@ -2404,11 +2679,25 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
   const destinationLinks = travelLinksOf(dest.links)
   const allPlaces = cities.flatMap(city => travelPlacesOf(city))
   const visited = allPlaces.filter(place => place.visited).length
+  const days = Array.isArray(dest.days) ? dest.days : []
+  const budget = (dest.budget && typeof dest.budget === 'object') ? dest.budget : { currency: 'SAR', items: [] }
+  const budgetItems = Array.isArray(budget.items) ? budget.items : []
+  const bookings = Array.isArray(dest.bookings) ? dest.bookings : []
+  const mapLinks = [
+    ...cities.flatMap(city => travelPlacesOf(city).flatMap(place => travelLinksOf(place.links)
+      .filter(link => travelLinkMeta(link.url).label === 'خرائط قوقل')
+      .map(link => ({ city, place, link })))),
+    ...destinationLinks.filter(link => travelLinkMeta(link.url).label === 'خرائط قوقل').map(link => ({ city: null, place: null, link })),
+  ]
   const [notes, setNotes] = useState(dest.tripNotes ?? dest.notes ?? '')
   const [cityModal, setCityModal] = useState(false)
   const [cityEdit, setCityEdit] = useState(null)
   const [placeModal, setPlaceModal] = useState(null)
   const [linkModal, setLinkModal] = useState(false)
+  const [dayModal, setDayModal] = useState(null)
+  const [dayItemModal, setDayItemModal] = useState(null)
+  const [budgetModal, setBudgetModal] = useState(null)
+  const [bookingModal, setBookingModal] = useState(null)
   const [rename, setRename] = useState(false)
   const [name, setName] = useState(dest.country)
   const [flag, setFlag] = useState(dest.flag || '🌍')
@@ -2475,6 +2764,54 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
     setRename(false)
   }
 
+  const saveDay = (nextDay) => {
+    const next = days.some(day => day.id === nextDay.id)
+      ? days.map(day => day.id === nextDay.id ? nextDay : day)
+      : [...days, nextDay]
+    onUpdate({ days: next }); setDayModal(null); buzz()
+  }
+  const deleteDay = (day) => ask({
+    title: `حذف «${day.title}»؟`, text: 'بيُحذف اليوم وفقراته من خطة الرحلة.', ok: 'حذف', danger: true,
+    onOk: () => { onUpdate({ days: days.filter(item => item.id !== day.id) }); setDayModal(null) },
+  })
+  const saveDayItem = (dayId, nextItem) => {
+    onUpdate({ days: days.map(day => day.id === dayId ? {
+      ...day,
+      items: Array.isArray(day.items) && day.items.some(item => item.id === nextItem.id)
+        ? day.items.map(item => item.id === nextItem.id ? nextItem : item)
+        : [...(Array.isArray(day.items) ? day.items : []), nextItem],
+    } : day) })
+    setDayItemModal(null); buzz()
+  }
+  const deleteDayItem = (dayId, itemId) => ask({
+    title: 'حذف الفقرة؟', text: 'تُحذف من خطة هذا اليوم فقط.', ok: 'حذف', danger: true,
+    onOk: () => { onUpdate({ days: days.map(day => day.id === dayId ? { ...day, items: (day.items || []).filter(item => item.id !== itemId) } : day) }); setDayItemModal(null) },
+  })
+  const saveBudgetItem = (nextItem) => {
+    const nextItems = budgetItems.some(item => item.id === nextItem.id)
+      ? budgetItems.map(item => item.id === nextItem.id ? nextItem : item)
+      : [...budgetItems, nextItem]
+    onUpdate({ budget: { ...budget, currency: budget.currency || 'SAR', items: nextItems } }); setBudgetModal(null); buzz()
+  }
+  const deleteBudgetItem = (item) => ask({
+    title: `حذف «${item.title}»؟`, text: 'بيُحذف بند الميزانية فقط.', ok: 'حذف', danger: true,
+    onOk: () => { onUpdate({ budget: { ...budget, currency: budget.currency || 'SAR', items: budgetItems.filter(entry => entry.id !== item.id) } }); setBudgetModal(null) },
+  })
+  const saveBooking = (nextBooking) => {
+    const next = bookings.some(item => item.id === nextBooking.id)
+      ? bookings.map(item => item.id === nextBooking.id ? nextBooking : item)
+      : [...bookings, nextBooking]
+    onUpdate({ bookings: next }); setBookingModal(null); buzz()
+  }
+  const deleteBooking = (booking) => ask({
+    title: `حذف «${booking.title}»؟`, text: 'بيُحذف الحجز من هذه الرحلة.', ok: 'حذف', danger: true,
+    onOk: () => { onUpdate({ bookings: bookings.filter(item => item.id !== booking.id) }); setBookingModal(null) },
+  })
+  const setBudgetCurrency = (currency) => onUpdate({ budget: { ...budget, currency, items: budgetItems } })
+  const dayCityName = (day) => cities.find(city => city.id === day.cityId)?.name || ''
+  const totalBudget = budgetItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const paidBudget = budgetItems.filter(item => item.paid).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+
   return html`
     <div class="page">
       <button class="back" onClick=${onBack}><span>→</span> رجوع للوجهات</button>
@@ -2492,8 +2829,8 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
         <div class="travel-summary">
           <div class="travel-stat"><b>${cities.filter(city => !city.legacy).length}</b><small>مدن</small></div>
           <div class="travel-stat"><b>${allPlaces.length}</b><small>أماكن وأشياء</small></div>
-          <div class="travel-stat"><b>${destinationLinks.length}</b><small>روابط</small></div>
-          <div class="travel-stat"><b>${visited}/${allPlaces.length || 0}</b><small>تمت الزيارة</small></div>
+          <div class="travel-stat"><b>${days.length}</b><small>أيام مخططة</small></div>
+          <div class="travel-stat"><b>${bookings.length}</b><small>حجوزات</small></div>
         </div>
         <div class="status-row">
           ${Object.entries(STATUS).map(([key, meta]) => html`
@@ -2504,6 +2841,9 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
 
       <div class="travel-toolbar">
         <button class="btn btn-primary" onClick=${() => setCityModal(true)}>+ إضافة مدينة</button>
+        <button class="btn btn-ghost" onClick=${() => setDayModal({ day: null })}>📅 إضافة يوم</button>
+        <button class="btn btn-ghost" onClick=${() => setBookingModal({ booking: null })}>🎫 إضافة حجز</button>
+        <button class="btn btn-ghost" onClick=${() => setBudgetModal({ item: null })}>💰 الميزانية</button>
         <button class="btn btn-ghost" onClick=${() => setLinkModal(true)}>🔗 رابط للرحلة</button>
       </div>
 
@@ -2559,6 +2899,82 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
           })}
         `}
 
+      <section class="travel-extra-card">
+        <div class="travel-section-heading">
+          <div><h3>خطة الأيام 📅</h3><p>حوّلوا المدن والأماكن إلى برنامج يومي واضح</p></div>
+          <span class="badge badge-gray">${days.length}</span>
+        </div>
+        ${days.length === 0
+          ? html`<div class="travel-empty compact"><div>🗓️</div><b>ما فيه أيام مخططة بعد</b><p>أضيفوا يوم الوصول أو أي يوم في الرحلة، وبعدها أضيفوا فقراته.</p><button class="btn btn-ghost" onClick=${() => setDayModal({ day: null })}>+ إضافة أول يوم</button></div>`
+          : html`<div class="travel-days-list">${[...days].sort(travelDateSort).map(day => {
+            const dayItems = Array.isArray(day.items) ? [...day.items].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')) : []
+            const done = dayItems.filter(item => item.done).length
+            return html`
+              <article class="travel-day-card" key=${day.id}>
+                <div class="travel-day-head">
+                  <div><b>${day.title || 'يوم في الرحلة'}</b><small>${day.date ? travelDateLabel(day.date) : 'بدون تاريخ'}${dayCityName(day) ? ` · ${dayCityName(day)}` : ''}</small></div>
+                  <div class="city-actions"><span class="badge badge-gray">${done}/${dayItems.length}</span><button class="icon-btn" title="تعديل اليوم" onClick=${() => setDayModal({ day })}>✏️</button><button class="icon-x" title="حذف اليوم" onClick=${() => deleteDay(day)}>✕</button></div>
+                </div>
+                ${dayItems.length > 0 && html`<div class="travel-day-items">${dayItems.map(item => html`
+                  <div class=${'travel-day-item' + (item.done ? ' done' : '')} key=${item.id}>
+                    <button class=${'check' + (item.done ? ' on' : '')} title="تغيير الحالة" onClick=${() => saveDayItem(day.id, { ...item, done: !item.done })}>${item.done ? '✓' : ''}</button>
+                    <button class="travel-day-main" onClick=${() => setDayItemModal({ day, item })}><span class="travel-day-time">${item.time || '—'}</span><span><b>${item.title}</b>${item.note && html`<small>${item.note}</small>`}</span></button>
+                    <button class="icon-x" title="حذف الفقرة" onClick=${() => deleteDayItem(day.id, item.id)}>✕</button>
+                  </div>
+                `)}</div>`}
+                <button class="add-dashed" onClick=${() => setDayItemModal({ day, item: null })}>+ إضافة فقرة لهذا اليوم</button>
+              </article>
+            `
+          })}</div>`}
+        <button class="add-dashed" onClick=${() => setDayModal({ day: null })}>+ إضافة يوم جديد</button>
+      </section>
+
+      <section class="travel-extra-card">
+        <div class="travel-section-heading">
+          <div><h3>ميزانية الرحلة 💰</h3><p>تابعوا المخطط والمدفوع والمتبقي</p></div>
+          <select class="mini-select" value=${budget.currency || 'SAR'} onChange=${e => setBudgetCurrency(e.target.value)}>${TRAVEL_CURRENCIES.map(currency => html`<option key=${currency} value=${currency}>${currency}</option>`)}</select>
+        </div>
+        <div class="travel-budget-summary">
+          <div><b>${travelMoney(totalBudget, budget.currency || 'SAR')}</b><small>المخطط</small></div>
+          <div><b>${travelMoney(paidBudget, budget.currency || 'SAR')}</b><small>المدفوع</small></div>
+          <div><b>${travelMoney(Math.max(0, totalBudget - paidBudget), budget.currency || 'SAR')}</b><small>المتبقي</small></div>
+        </div>
+        ${budgetItems.length > 0 && html`<div class="travel-budget-list">${budgetItems.map(item => html`
+          <div class=${'travel-budget-item' + (item.paid ? ' done' : '')} key=${item.id}>
+            <button class=${'check' + (item.paid ? ' on' : '')} title="تغيير حالة الدفع" onClick=${() => saveBudgetItem({ ...item, paid: !item.paid })}>${item.paid ? '✓' : ''}</button>
+            <button class="travel-budget-main" onClick=${() => setBudgetModal({ item })}><span><b>${item.title}</b><small>${item.category || 'عام'}${item.note ? ` · ${item.note}` : ''}</small></span><strong>${travelMoney(item.amount, budget.currency || 'SAR')}</strong></button>
+            <button class="icon-x" title="حذف البند" onClick=${() => deleteBudgetItem(item)}>✕</button>
+          </div>
+        `)}</div>`}
+        ${budgetItems.length === 0 && html`<p class="travel-links-empty">أضيفوا تذاكر، سكن، مطاعم أو أي مصروف متوقع.</p>`}
+        <button class="add-dashed" onClick=${() => setBudgetModal({ item: null })}>+ إضافة بند للميزانية</button>
+      </section>
+
+      <section class="travel-extra-card">
+        <div class="travel-section-heading"><div><h3>الحجوزات والتنبيهات 🎫</h3><p>التذاكر والفنادق والمواعيد المهمة للرحلة</p></div><span class="badge badge-gray">${bookings.length}</span></div>
+        ${bookings.length > 0
+          ? html`<div class="travel-bookings-list">${[...bookings].sort(travelDateSort).map(booking => {
+            const meta = BOOKING_TYPES[booking.type] || BOOKING_TYPES.other
+            return html`<div class="travel-booking-row" key=${booking.id}>
+              <span class="travel-booking-icon">${meta.icon}</span>
+              <button class="travel-booking-main" onClick=${() => setBookingModal({ booking })}><b>${booking.title}</b><small>${meta.label}${booking.date ? ` · ${travelDateLabel(booking.date)}` : ''}${booking.confirmation ? ` · تأكيد: ${booking.confirmation}` : ''}</small>${booking.note && html`<small>${booking.note}</small>`}</button>
+              ${booking.url && html`<a class="travel-link-open" href=${safeTravelUrl(booking.url)} target="_blank" rel="noopener noreferrer" title="فتح الرابط">↗</a>`}
+              <button class="icon-x" title="حذف الحجز" onClick=${() => deleteBooking(booking)}>✕</button>
+            </div>`
+          })}</div>`
+          : html`<p class="travel-links-empty">أضيفوا حجوزاتكم عشان تكون كل تفاصيل الرحلة في مكان واحد.</p>`}
+        <button class="add-dashed" onClick=${() => setBookingModal({ booking: null })}>+ إضافة حجز</button>
+      </section>
+
+      <section class="travel-extra-card">
+        <div class="travel-section-heading"><div><h3>خريطة الرحلة 📍</h3><p>كل روابط خرائط قوقل الخاصة بالأماكن في قائمة واحدة</p></div><span class="badge badge-gray">${mapLinks.length}</span></div>
+        ${mapLinks.length > 0
+          ? html`<div class="travel-map-list">${mapLinks.map(({ city, place, link }) => html`
+            <a class="travel-map-row" key=${link.id} href=${link.url} target="_blank" rel="noopener noreferrer"><span>📍</span><span><b>${place?.name || link.label}</b><small>${city?.name || 'رابط الرحلة'}${place ? ` · ${city?.name || ''}` : ''}</small></span><strong>فتح الخريطة ↗</strong></a>
+          `)}</div>`
+          : html`<p class="travel-links-empty">أضيفوا رابط خرائط قوقل داخل أي مكان، وبيظهر هنا تلقائياً.</p>`}
+      </section>
+
       <section class="travel-notes-card">
         <div class="travel-section-heading"><div><h3>ملاحظات الرحلة 📝</h3><p>أفكار عامة لا تخص مكاناً واحداً</p></div></div>
         <textarea class="notes-area" rows="5" dir="rtl" placeholder="الميزانية، المواصلات، أوقات السفر، الأشياء اللي ما تبغون تنسونها..."
@@ -2583,6 +2999,10 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
       ${placeModal && html`<${PlaceEditor} city=${placeModal.city} place=${placeModal.place} onClose=${() => setPlaceModal(null)}
         onSave=${place => savePlace(placeModal.cityId, place)} onDelete=${placeModal.place ? () => deletePlace(placeModal.cityId, placeModal.place.id) : null} />`}
       ${linkModal && html`<${LinkEditor} onClose=${() => setLinkModal(false)} onSave=${addDestinationLink} />`}
+      ${dayModal && html`<${DayEditor} day=${dayModal.day} cities=${cities} onClose=${() => setDayModal(null)} onSave=${saveDay} onDelete=${dayModal.day ? () => deleteDay(dayModal.day) : null} />`}
+      ${dayItemModal && html`<${DayItemEditor} item=${dayItemModal.item} onClose=${() => setDayItemModal(null)} onSave=${item => saveDayItem(dayItemModal.day.id, item)} onDelete=${dayItemModal.item ? () => deleteDayItem(dayItemModal.day.id, dayItemModal.item.id) : null} />`}
+      ${budgetModal && html`<${BudgetItemEditor} item=${budgetModal.item} currency=${budget.currency || 'SAR'} onClose=${() => setBudgetModal(null)} onSave=${saveBudgetItem} onDelete=${budgetModal.item ? () => deleteBudgetItem(budgetModal.item) : null} />`}
+      ${bookingModal && html`<${BookingEditor} booking=${bookingModal.booking} onClose=${() => setBookingModal(null)} onSave=${saveBooking} onDelete=${bookingModal.booking ? () => deleteBooking(bookingModal.booking) : null} />`}
       ${rename && html`
         <${Modal} title="تعديل الوجهة ✏️" onClose=${() => setRename(false)}>
           <div class="row-gap">
@@ -2613,7 +3033,7 @@ function Travel({ col, tab }) {
 
   const submit = () => {
     if (!norm(country)) return
-    add({ country: norm(country), flag: FLAGS[norm(country)] || flag, status, cities: [], places: [], notes: '', tripNotes: '', links: [] })
+    add({ country: norm(country), flag: FLAGS[norm(country)] || flag, status, cities: [], places: [], notes: '', tripNotes: '', links: [], days: [], budget: { currency: 'SAR', items: [] }, bookings: [] })
     setCountry(''); setFlag('🌍'); setStatus('planned'); setOpen(false)
     buzz()
   }
@@ -2656,7 +3076,7 @@ function Travel({ col, tab }) {
               <div class="flag">${dest.flag || '🌍'}</div>
               <div class="name">${dest.country}</div>
               <span class=${'status-pill ' + st.cls}>${st.label}</span>
-              <p class="meta">${cities.filter(city => !city.legacy).length} مدن · ${done}/${places.length} أماكن تمت</p>
+              <p class="meta">${cities.filter(city => !city.legacy).length} مدن · ${done}/${places.length} أماكن تمت · ${(dest.days || []).length} أيام</p>
               <button class="dest-open" onClick=${e => { e.stopPropagation(); setSelId(dest.id) }}>فتح الخطة ←</button>
             </div>
           `
@@ -2967,6 +3387,310 @@ function SimpleEditor({ item, onClose, onSave, onDelete }) {
   `
 }
 
+/* =========================== ٦) لوحة اليوم والأدوات المشتركة =========================== */
+
+const appToday = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const appDateLabel = (value) => {
+  if (!value) return 'بدون تاريخ'
+  try { return new Date(`${value}T00:00:00`).toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' }) }
+  catch { return value }
+}
+const appRepeatLabel = { none: 'مرة واحدة', daily: 'يومي', weekly: 'أسبوعي', monthly: 'شهري' }
+const assigneeLabel = { me: 'أنا', partner: 'شريكي', both: 'معاً' }
+const reminderOccursOn = (item, target) => {
+  if (!item?.date || item.date > target) return false
+  if ((item.repeat || 'none') === 'daily') return true
+  if ((item.repeat || 'none') === 'weekly') {
+    const from = new Date(`${item.date}T00:00:00`)
+    const to = new Date(`${target}T00:00:00`)
+    return Math.round((to - from) / 86400000) % 7 === 0
+  }
+  if ((item.repeat || 'none') === 'monthly') return item.date.slice(8) === target.slice(8)
+  return item.date === target
+}
+const reminderDoneOn = (item, target) => item?.repeat && item.repeat !== 'none' ? item.doneDate === target : !!item?.done
+
+function TaskEditor({ task, onClose, onSave, onDelete }) {
+  const editing = !!task
+  const [title, setTitle] = useState(task?.title || task?.name || '')
+  const [assignee, setAssignee] = useState(task?.assignee || 'both')
+  const [dueDate, setDueDate] = useState(task?.dueDate || '')
+  const [repeat, setRepeat] = useState(task?.repeat || 'none')
+  const save = () => {
+    const clean = norm(title)
+    if (!clean) return
+    onSave({ ...(task || {}), id: task?.id || genId(), title: clean, assignee, dueDate, repeat, done: !!task?.done })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل المهمة ✏️' : 'إضافة مهمة ✅'} sub="قسّموها بينكم وخلوها واضحة في لوحة اليوم" onClose=${onClose}>
+      <p class="field-label">المهمة</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: حجز موعد الصيانة" value=${title} onInput=${e => setTitle(e.target.value)} />
+      <p class="field-label">على مين؟</p>
+      <div class="assignee-pick">
+        ${Object.entries(assigneeLabel).map(([key, label]) => html`<button key=${key} class=${assignee === key ? 'active' : ''} onClick=${() => setAssignee(key)}>${key === 'me' ? '🙋' : key === 'partner' ? '🤝' : '👫'} ${label}</button>`)}
+      </div>
+      <div class="date-time-grid">
+        <div><p class="field-label">موعد الإنجاز</p><input class="field" type="date" dir="ltr" value=${dueDate} onInput=${e => setDueDate(e.target.value)} /></div>
+        <div><p class="field-label">التكرار</p><select class="field" value=${repeat} onChange=${e => setRepeat(e.target.value)}>${Object.entries(appRepeatLabel).map(([key, label]) => html`<option key=${key} value=${key}>${label}</option>`)}</select></div>
+      </div>
+      <div class="btn-row"><button class="btn btn-primary" disabled=${!norm(title)} onClick=${save}>${editing ? 'حفظ' : 'إضافة المهمة'}</button><button class="btn btn-ghost" onClick=${onClose}>إلغاء</button></div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف المهمة</button>`}
+    <//>
+  `
+}
+
+function TasksManager({ onClose }) {
+  const { store, ask } = useApp()
+  const col = section(store, 'tasks')
+  const [edit, setEdit] = useState(null)
+  const tasks = col.items
+  const save = (next) => {
+    if (tasks.some(item => item.id === next.id)) col.update(next.id, next)
+    else col.add(next)
+    setEdit(null); buzz()
+  }
+  const removeTask = (task) => ask({ title: `حذف «${task.title || task.name}»؟`, text: 'بيُحذف من قائمة مهام البيت.', ok: 'حذف', danger: true, onOk: () => { col.remove(task.id); setEdit(null) } })
+  const active = tasks.filter(task => !task.done).sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'))
+  const done = tasks.filter(task => task.done)
+  const row = task => html`
+    <div class=${'task-row' + (task.done ? ' done' : '')} key=${task.id}>
+      <button class=${'check' + (task.done ? ' on' : '')} onClick=${() => col.update(task.id, { done: !task.done, doneAt: task.done ? null : Date.now() })}>${task.done ? '✓' : ''}</button>
+      <button class="task-main" onClick=${() => setEdit(task)}><b>${task.title || task.name}</b><small>${assigneeLabel[task.assignee] || 'معاً'}${task.dueDate ? ` · ${appDateLabel(task.dueDate)}` : ''}${task.repeat && task.repeat !== 'none' ? ` · ${appRepeatLabel[task.repeat]}` : ''}</small></button>
+      <button class="icon-x" title="حذف" onClick=${() => removeTask(task)}>✕</button>
+    </div>
+  `
+  return html`
+    <${Modal} title="مهامنا ✅" sub="مهام مشتركة بينكم — تظهر في لوحة اليوم" onClose=${onClose}>
+      <button class="btn btn-primary full-btn" onClick=${() => setEdit({})}>+ إضافة مهمة</button>
+      ${active.length > 0 ? html`<p class="group-lbl">المفتوحة (${active.length})</p><div class="dashboard-list-card">${active.map(row)}</div>` : html`<p class="dashboard-empty">ما فيه مهام مفتوحة 🎉</p>`}
+      ${done.length > 0 && html`<p class="group-lbl">المكتملة (${done.length})</p><div class="dashboard-list-card">${done.map(row)}</div>`}
+      ${edit && html`<${TaskEditor} task=${edit.id ? edit : null} onClose=${() => setEdit(null)} onSave=${save} onDelete=${edit.id ? () => removeTask(edit) : null} />`}
+    <//>
+  `
+}
+
+function ReminderEditor({ reminder, onClose, onSave, onDelete }) {
+  const editing = !!reminder
+  const [title, setTitle] = useState(reminder?.title || '')
+  const [date, setDate] = useState(reminder?.date || appToday())
+  const [time, setTime] = useState(reminder?.time || '')
+  const [repeat, setRepeat] = useState(reminder?.repeat || 'none')
+  const [note, setNote] = useState(reminder?.note || '')
+  const save = () => {
+    const clean = norm(title)
+    if (!clean || !date) return
+    onSave({ ...(reminder || {}), id: reminder?.id || genId(), title: clean, date, time, repeat, note: norm(note), done: !!reminder?.done })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل التذكير ✏️' : 'إضافة تذكير ⏰'} sub="يظهر داخل بيتنا في اليوم المناسب والتكرار الذي تختارونه" onClose=${onClose}>
+      <p class="field-label">التذكير</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: دفع فاتورة الإنترنت" value=${title} onInput=${e => setTitle(e.target.value)} />
+      <div class="date-time-grid">
+        <div><p class="field-label">التاريخ</p><input class="field" type="date" dir="ltr" value=${date} onInput=${e => setDate(e.target.value)} /></div>
+        <div><p class="field-label">الوقت (اختياري)</p><input class="field" type="time" dir="ltr" value=${time} onInput=${e => setTime(e.target.value)} /></div>
+      </div>
+      <p class="field-label">التكرار</p><select class="field" value=${repeat} onChange=${e => setRepeat(e.target.value)}>${Object.entries(appRepeatLabel).map(([key, label]) => html`<option key=${key} value=${key}>${label}</option>`)}</select>
+      <p class="field-label">ملاحظة</p><textarea class="field" rows="3" dir="rtl" placeholder="تفصيل صغير يساعدكم..." value=${note} onInput=${e => setNote(e.target.value)}></textarea>
+      <div class="btn-row"><button class="btn btn-primary" disabled=${!norm(title) || !date} onClick=${save}>${editing ? 'حفظ التذكير' : 'إضافة التذكير'}</button><button class="btn btn-ghost" onClick=${onClose}>إلغاء</button></div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف التذكير</button>`}
+    <//>
+  `
+}
+
+function RemindersManager({ onClose }) {
+  const { store, ask } = useApp()
+  const col = section(store, 'reminders')
+  const [edit, setEdit] = useState(null)
+  const reminders = [...col.items].sort((a, b) => `${a.date || '9999'}${a.time || ''}`.localeCompare(`${b.date || '9999'}${b.time || ''}`))
+  const save = next => { if (col.items.some(item => item.id === next.id)) col.update(next.id, next); else col.add(next); setEdit(null); buzz() }
+  const removeReminder = reminder => ask({ title: `حذف «${reminder.title}»؟`, text: 'بيُحذف التذكير من بيتنا.', ok: 'حذف', danger: true, onOk: () => { col.remove(reminder.id); setEdit(null) } })
+  const toggleReminder = reminder => {
+    const today = appToday()
+    const doneToday = reminderDoneOn(reminder, today)
+    const patch = reminder.repeat && reminder.repeat !== 'none'
+      ? { done: !doneToday, doneDate: !doneToday ? today : null }
+      : { done: !doneToday }
+    col.update(reminder.id, patch)
+  }
+  const row = reminder => {
+    const today = appToday()
+    const due = reminderOccursOn(reminder, today)
+    const doneToday = reminderDoneOn(reminder, today)
+    const overdue = reminder.repeat === 'none' && reminder.date < today && !doneToday
+    return html`<div class=${'reminder-row' + (doneToday ? ' done' : '')} key=${reminder.id}>
+      <button class=${'check' + (doneToday ? ' on' : '')} onClick=${() => toggleReminder(reminder)}>${doneToday ? '✓' : ''}</button>
+      <button class="task-main" onClick=${() => setEdit(reminder)}><b>${reminder.title}</b><small class=${overdue ? 'reminder-overdue' : due ? 'reminder-due' : ''}>${overdue ? 'متأخر' : due ? 'اليوم' : appDateLabel(reminder.date)}${reminder.time ? ` · ${reminder.time}` : ''}${reminder.repeat && reminder.repeat !== 'none' ? ` · ${appRepeatLabel[reminder.repeat]}` : ''}</small>${reminder.note && html`<small>${reminder.note}</small>`}</button>
+      <button class="icon-x" title="حذف" onClick=${() => removeReminder(reminder)}>✕</button>
+    </div>`
+  }
+  return html`
+    <${Modal} title="تذكيراتنا ⏰" sub="تذكيرات مشتركة داخل التطبيق — لا تحتاجون إنشاءها من جديد كل أسبوع" onClose=${onClose}>
+      <button class="btn btn-primary full-btn" onClick=${() => setEdit({})}>+ إضافة تذكير</button>
+      ${reminders.length > 0 ? html`<div class="dashboard-list-card">${reminders.map(row)}</div>` : html`<p class="dashboard-empty">ما فيه تذكيرات بعد.</p>`}
+      ${edit && html`<${ReminderEditor} reminder=${edit.id ? edit : null} onClose=${() => setEdit(null)} onSave=${save} onDelete=${edit.id ? () => removeReminder(edit) : null} />`}
+    <//>
+  `
+}
+
+function VoteEditor({ vote, onClose, onSave, onDelete }) {
+  const editing = !!vote
+  const [question, setQuestion] = useState(vote?.question || '')
+  const [optionsText, setOptionsText] = useState((vote?.options || []).join('\n'))
+  const save = () => {
+    const options = optionsText.split(/\n|،|,/).map(norm).filter(Boolean)
+    const clean = norm(question)
+    if (!clean || options.length < 2) return
+    onSave({ ...(vote || {}), id: vote?.id || genId(), question: clean, options, votes: vote?.votes || {} })
+  }
+  return html`
+    <${Modal} title=${editing ? 'تعديل التصويت ✏️' : 'تصويت جديد 🗳️'} sub="خلو القرار مشتركاً بدل ما يضيع بين الرسائل" onClose=${onClose}>
+      <p class="field-label">السؤال</p><input class="field" dir="rtl" autoFocus placeholder="مثلاً: وين نتعشى؟" value=${question} onInput=${e => setQuestion(e.target.value)} />
+      <p class="field-label">الخيارات (كل خيار في سطر)</p><textarea class="field" rows="5" dir="rtl" placeholder="مطعم 1\nمطعم 2\nنطبخ بالبيت" value=${optionsText} onInput=${e => setOptionsText(e.target.value)}></textarea>
+      <p class="hint">يحتاج التصويت خيارين على الأقل.</p>
+      <div class="btn-row"><button class="btn btn-primary" disabled=${!norm(question) || optionsText.split(/\n|،|,/).filter(x => norm(x)).length < 2} onClick=${save}>${editing ? 'حفظ التصويت' : 'إضافة التصويت'}</button><button class="btn btn-ghost" onClick=${onClose}>إلغاء</button></div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف التصويت</button>`}
+    <//>
+  `
+}
+
+function VotesManager({ onClose }) {
+  const { store, ask, session } = useApp()
+  const col = section(store, 'votes')
+  const [edit, setEdit] = useState(null)
+  const uid = session.uid || 'this-device'
+  const save = next => { if (col.items.some(item => item.id === next.id)) col.update(next.id, next); else col.add(next); setEdit(null); buzz() }
+  const removeVote = vote => ask({ title: `حذف التصويت؟`, text: `بيُحذف سؤال «${vote.question}» ونتائجه.`, ok: 'حذف', danger: true, onOk: () => { col.remove(vote.id); setEdit(null) } })
+  const cast = (vote, index) => col.update(vote.id, { votes: { ...(vote.votes || {}), [uid]: index } })
+  return html`
+    <${Modal} title="تصويتاتنا 🗳️" sub="كل واحد يصوّت من جهازه وتظهر النتيجة فوراً" onClose=${onClose}>
+      <button class="btn btn-primary full-btn" onClick=${() => setEdit({})}>+ تصويت جديد</button>
+      ${col.items.length === 0 && html`<p class="dashboard-empty">ما فيه تصويتات بعد.</p>`}
+      <div class="vote-list">${col.items.map(vote => {
+        const options = Array.isArray(vote.options) ? vote.options : []
+        const counts = options.map((_, index) => Object.values(vote.votes || {}).filter(value => Number(value) === index).length)
+        const total = Object.keys(vote.votes || {}).length
+        return html`<article class="vote-card" key=${vote.id}><div class="vote-head"><b>${vote.question}</b><div><button class="icon-btn" title="تعديل" onClick=${() => setEdit(vote)}>✏️</button><button class="icon-x" title="حذف" onClick=${() => removeVote(vote)}>✕</button></div></div>${options.map((option, index) => {
+          const percent = total ? Math.round((counts[index] / total) * 100) : 0
+          return html`<button class=${'vote-option' + (Number((vote.votes || {})[uid]) === index ? ' selected' : '')} key=${index} onClick=${() => cast(vote, index)}><span>${option}</span><span class="vote-result"><i style=${{ width: percent + '%' }}></i><small>${counts[index]} · ${percent}%</small></span></button>`
+        })}<small class="vote-total">${total ? `${total} مشاركة` : 'صوّتوا أنتم الاثنين للبدء'}</small></article>`
+      })}</div>
+      ${edit && html`<${VoteEditor} vote=${edit.id ? edit : null} onClose=${() => setEdit(null)} onSave=${save} onDelete=${edit.id ? () => removeVote(edit) : null} />`}
+    <//>
+  `
+}
+
+const HOME_TEMPLATES = [
+  { id: 'quick-trip', icon: '✈️', title: 'سفر سريع', desc: 'قائمة مختصرة قبل أي رحلة', tasks: ['التأكد من الجوازات', 'تأكيد التذاكر', 'تسجيل الوصول أونلاين', 'تجهيز الشنط'] },
+  { id: 'honeymoon', icon: '💍', title: 'شهر عسل', desc: 'تفاصيل تخلي الرحلة أهدأ وأحلى', tasks: ['اختيار الفندق', 'حجز مطعم مميز', 'تجهيز مفاجأة بسيطة', 'تحديد يوم للراحة'] },
+  { id: 'home-reset', icon: '🏡', title: 'تنظيم البيت', desc: 'ترتيب سريع للمهام المنزلية', tasks: ['ترتيب غرفة النوم', 'تنظيف الثلاجة', 'غسيل الملابس', 'شراء مستلزمات البيت'] },
+  { id: 'kids-trip', icon: '👨‍👩‍👧', title: 'رحلة مع أطفال', desc: 'أساسيات تساعدكم قبل الانطلاق', tasks: ['تجهيز أدوية الأطفال', 'حفظ نسخ من الوثائق', 'اختيار نشاط مناسب للأطفال'], packing: ['ملابس إضافية للأطفال', 'وجبات خفيفة', 'ألعاب صغيرة'] },
+]
+
+function TemplatesManager({ onClose }) {
+  const { store, ask, notify } = useApp()
+  const apply = template => ask({
+    title: `إضافة قالب «${template.title}»؟`, text: 'بيُضاف كمجموعة جديدة، وبياناتكم الحالية تبقى كما هي.', ok: 'أضف القالب',
+    onOk: () => {
+      const sections = store.data?.sections || {}
+      const stamp = Date.now()
+      const patch = {}
+      if (template.tasks?.length) patch['sections.tasks'] = [...(sections.tasks || []), ...template.tasks.map((title, index) => ({ id: genId(), createdAt: stamp + index, title, assignee: 'both', dueDate: '', repeat: 'none', done: false }))]
+      if (template.packing?.length) patch['sections.packing'] = [...(sections.packing || []), ...template.packing.map((name, index) => ({ id: genId(), createdAt: stamp + index, name, fixed: false, packed: false }))]
+      if (Object.keys(patch).length) store.updateMany(patch)
+      notify(`✨ أضفنا قالب «${template.title}»`)
+      onClose()
+    },
+  })
+  return html`
+    <${Modal} title="قوالب جاهزة ✨" sub="ابدؤوا من قالب وعدّلوه على مزاجكم" onClose=${onClose}>
+      <div class="template-list">${HOME_TEMPLATES.map(template => html`<button class="template-card" key=${template.id} onClick=${() => apply(template)}><span class="template-icon">${template.icon}</span><span><b>${template.title}</b><small>${template.desc}</small><em>${template.tasks.length} مهام${template.packing ? ` · ${template.packing.length} أغراض شنطة` : ''}</em></span><strong>إضافة</strong></button>`)}</div>
+    <//>
+  `
+}
+
+function GlobalSearch({ onClose, onGo }) {
+  const { store, shoppingCol } = useApp()
+  const [query, setQuery] = useState('')
+  const q = norm(query).toLocaleLowerCase()
+  const results = []
+  const push = (tabId, title, detail, icon = '🔎') => {
+    const text = `${title || ''} ${detail || ''}`.toLocaleLowerCase()
+    if (q && text.includes(q)) results.push({ tabId, title, detail, icon })
+  }
+  const sections = store.data?.sections || {}
+  ;(sections.rules || []).forEach(item => push('rules', item.text || item.title || item.name, item.note, '💑'))
+  ;(sections.packing || []).forEach(item => push('packing', item.name || item.title, item.note, '🧳'))
+  ;(sections.tasks || []).forEach(item => push('today', item.title || item.name, `${assigneeLabel[item.assignee] || ''} ${item.dueDate ? appDateLabel(item.dueDate) : ''}`, '✅'))
+  ;(sections.reminders || []).forEach(item => push('today', item.title, `${item.date ? appDateLabel(item.date) : ''} ${item.note || ''}`, '⏰'))
+  ;(sections.votes || []).forEach(item => push('today', item.question, (item.options || []).join(' · '), '🗳️'))
+  ;(sections.travel || []).forEach(dest => {
+    push('travel', dest.country, dest.tripNotes || dest.notes, dest.flag || '🌍')
+    travelCitiesOf(dest).forEach(city => {
+      push('travel', `${dest.country} · ${city.name}`, city.note, '🏙️')
+      travelPlacesOf(city).forEach(place => {
+        push('travel', `${city.name} · ${place.name}`, place.notes || place.note, (PLACE_TYPES[place.type] || PLACE_TYPES.other).icon)
+        travelLinksOf(place.links).forEach(link => push('travel', `${place.name} · ${link.label}`, link.url, '🔗'))
+      })
+    })
+    ;(dest.days || []).forEach(day => push('travel', `${dest.country} · ${day.title}`, `${day.date || ''} ${(day.items || []).map(item => `${item.title} ${item.note || ''}`).join(' · ')}`, '📅'))
+    ;(dest.budget?.items || []).forEach(item => push('travel', `${dest.country} · ${item.title}`, `${item.category || ''} ${item.note || ''}`, '💰'))
+    ;(dest.bookings || []).forEach(booking => push('travel', `${dest.country} · ${booking.title}`, `${booking.confirmation || ''} ${booking.note || ''}`, '🎫'))
+    ;(dest.links || []).forEach(link => push('travel', `${dest.country} · ${link.label || 'رابط'}`, link.url, '🔗'))
+  })
+  ;(shoppingCol.items || []).forEach(item => push('shopping', item.name, item.note, '🛒'))
+  const shown = results.slice(0, 50)
+  return html`
+    <${Modal} title="بحث في بيتنا 🔎" sub="ابحثوا في السفر، المقاضي، المهام، التذكيرات والملاحظات" onClose=${onClose}>
+      <input class="field search-field" dir="rtl" autoFocus placeholder="وش تدورون عليه؟" value=${query} onInput=${e => setQuery(e.target.value)} />
+      ${!q && html`<p class="dashboard-empty">اكتب كلمة البحث، وبتظهر النتائج من كل أقسام البيت.</p>`}
+      ${q && shown.length === 0 && html`<p class="dashboard-empty">ما لقينا «${query}» — جرّبوا كلمة ثانية.</p>`}
+      ${shown.length > 0 && html`<div class="search-results">${shown.map((result, index) => html`<button class="search-result" key=${index} onClick=${() => { onGo(result.tabId); onClose() }}><span>${result.icon}</span><span><b>${result.title}</b><small>${result.detail || 'من بيتنا'}</small></span><strong>فتح ←</strong></button>`)}</div>`}
+      ${results.length > 50 && html`<p class="hint">نعرض أول ٥٠ نتيجة فقط.</p>`}
+    <//>
+  `
+}
+
+function TodayDashboard() {
+  const { store, shoppingCol, setTab } = useApp()
+  const [modal, setModal] = useState(null)
+  const today = appToday()
+  const sections = store.data?.sections || {}
+  const tasks = Array.isArray(sections.tasks) ? sections.tasks : []
+  const reminders = Array.isArray(sections.reminders) ? sections.reminders : []
+  const votes = Array.isArray(sections.votes) ? sections.votes : []
+  const shoppingLeft = (shoppingCol.items || []).filter(item => !item.completed)
+  const dueTasks = tasks.filter(task => !task.done && (!task.dueDate || task.dueDate <= today)).slice(0, 6)
+  const dueReminders = reminders.filter(item => !reminderDoneOn(item, today) && reminderOccursOn(item, today)).sort((a, b) => `${a.time || ''}`.localeCompare(`${b.time || ''}`)).slice(0, 6)
+  const upcoming = []
+  ;(sections.travel || []).forEach(dest => {
+    ;(dest.bookings || []).filter(item => item.date && item.date >= today).forEach(item => upcoming.push({ kind: 'booking', dest, item }))
+    ;(dest.days || []).filter(item => item.date && item.date >= today).forEach(item => upcoming.push({ kind: 'day', dest, item }))
+  })
+  upcoming.sort((a, b) => (a.item.date || '').localeCompare(b.item.date || ''))
+  const firstUpcoming = upcoming.slice(0, 4)
+  const open = type => setModal(type)
+  return html`
+    <div class="page dashboard-page">
+      <div class="dashboard-hero"><div><span class="eyebrow">${new Date().toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' })}</span><h2>يومنا ☀️</h2><p>نظرة سريعة على الأشياء المهمة بينكم.</p></div><span class="dashboard-heart">🏡</span></div>
+      <div class="dashboard-stats"><button class="dashboard-stat" onClick=${() => open('tasks')}><b>${dueTasks.length}</b><small>مهام اليوم</small></button><button class="dashboard-stat" onClick=${() => open('reminders')}><b>${dueReminders.length}</b><small>تذكيرات اليوم</small></button><button class="dashboard-stat" onClick=${() => setTab('shopping')}><b>${shoppingLeft.length}</b><small>باقي المقاضي</small></button><button class="dashboard-stat" onClick=${() => setTab('travel')}><b>${upcoming.length}</b><small>مواعيد السفر</small></button></div>
+      <div class="dashboard-actions"><button class="dashboard-action" onClick=${() => open('tasks')}>✅<span>مهمة</span></button><button class="dashboard-action" onClick=${() => open('reminders')}>⏰<span>تذكير</span></button><button class="dashboard-action" onClick=${() => open('votes')}>🗳️<span>تصويت</span></button><button class="dashboard-action" onClick=${() => open('templates')}>✨<span>قالب</span></button></div>
+
+      <section class="dashboard-card"><div class="dashboard-card-head"><div><h3>المهم اليوم</h3><small>المهام التي تحتاج انتباهكم</small></div><button class="text-btn" onClick=${() => open('tasks')}>عرض الكل</button></div>${dueTasks.length > 0 ? html`<div class="dashboard-list-card">${dueTasks.map(task => html`<div class="dashboard-item" key=${task.id}><span>✅</span><b>${task.title || task.name}</b><small>${assigneeLabel[task.assignee] || 'معاً'}</small></div>`)}</div>` : html`<p class="dashboard-empty">ما فيه مهام مستحقة اليوم 🎉</p>`}</section>
+      <section class="dashboard-card"><div class="dashboard-card-head"><div><h3>تذكيرات اليوم ⏰</h3><small>تبقى داخل بيتنا حتى ما تنسونها</small></div><button class="text-btn" onClick=${() => open('reminders')}>عرض الكل</button></div>${dueReminders.length > 0 ? html`<div class="dashboard-list-card">${dueReminders.map(item => html`<div class="dashboard-item" key=${item.id}><span>⏰</span><b>${item.title}</b><small>${item.time || 'اليوم'}</small></div>`)}</div>` : html`<p class="dashboard-empty">ما فيه تذكيرات لليوم.</p>`}</section>
+      <section class="dashboard-card"><div class="dashboard-card-head"><div><h3>الخطوة الجاية في السفر ✈️</h3><small>أقرب يوم أو حجز مخطط</small></div><button class="text-btn" onClick=${() => setTab('travel')}>فتح السفر</button></div>${firstUpcoming.length > 0 ? html`<div class="dashboard-list-card">${firstUpcoming.map(entry => html`<button class="dashboard-item clickable" key=${entry.item.id} onClick=${() => setTab('travel')}><span>${entry.kind === 'booking' ? '🎫' : '📅'}</span><b>${entry.item.title || 'يوم في الرحلة'}</b><small>${entry.dest.country} · ${appDateLabel(entry.item.date)}</small></button>`)}</div>` : html`<p class="dashboard-empty">ما فيه مواعيد سفر قريبة — خططوا لرحلتكم بهدوء.</p>`}</section>
+      <section class="dashboard-card"><div class="dashboard-card-head"><div><h3>قراراتنا 🗳️</h3><small>${votes.length ? `${votes.length} تصويتات مفتوحة` : 'اختاروا معاً'}</small></div><button class="text-btn" onClick=${() => open('votes')}>التصويتات</button></div>${votes.length > 0 ? html`<div class="dashboard-list-card">${votes.slice(0, 3).map(vote => html`<button class="dashboard-item clickable" key=${vote.id} onClick=${() => open('votes')}><span>🗳️</span><b>${vote.question}</b><small>${(vote.options || []).length} خيارات</small></button>`)}</div>` : html`<p class="dashboard-empty">ما فيه قرار يحتاج تصويت حالياً.</p>`}</section>
+
+      ${modal === 'tasks' && html`<${TasksManager} onClose=${() => setModal(null)} />`}
+      ${modal === 'reminders' && html`<${RemindersManager} onClose=${() => setModal(null)} />`}
+      ${modal === 'votes' && html`<${VotesManager} onClose=${() => setModal(null)} />`}
+      ${modal === 'templates' && html`<${TemplatesManager} onClose=${() => setModal(null)} />`}
+    </div>
+  `
+}
+
 /* =========================== إدارة الأقسام =========================== */
 
 function SectionManager({ onClose }) {
@@ -3090,7 +3814,7 @@ function SectionManager({ onClose }) {
 /* =========================== الإعدادات =========================== */
 
 function Settings({ onClose, theme, setTheme }) {
-  const { tabs, ui, openCats, openSecs, openFamily, openBackup, session, ask } = useApp()
+  const { tabs, ui, openCats, openSecs, openFamily, openBackup, openSearch, setTab, session, ask } = useApp()
   const hiddenCount = (ui.hiddenTabs || []).length
   return html`
     <${Modal} title="الإعدادات ⚙️" onClose=${onClose}>
@@ -3105,6 +3829,8 @@ function Settings({ onClose, theme, setTheme }) {
         desc=${`${tabs.length} أقسام — أضف، احذف، رتّب، أو أخفِ${hiddenCount ? ` (${hiddenCount} مخفي)` : ''}`}
         onClick=${() => { onClose(); openSecs() }} />
       <${ActRow} icon="🏷️" title="فئات المقاضي" desc="أضف أو أخفِ فئات" onClick=${() => { onClose(); openCats() }} />
+      <${ActRow} icon="☀️" title="لوحة اليوم" desc="المهام، التذكيرات، التصويتات والقوالب" onClick=${() => { onClose(); setTab('today') }} />
+      <${ActRow} icon="🔎" title="بحث شامل" desc="ابحث في كل ما حفظتوه داخل بيتنا" onClick=${() => { onClose(); openSearch() }} />
 
       <div class="sep"></div>
       <p class="group-lbl">الأمان والبيانات</p>
@@ -3467,7 +4193,7 @@ function App() {
   const session = useFamilySession(uid)
   const [holdOnboarding, setHoldOnboarding] = useState(false)
 
-  const [tab, setTabState] = useState(() => localStorage.getItem('baytuna_tab') || 'shopping')
+  const [tab, setTabState] = useState(() => localStorage.getItem('baytuna_tab') || 'today')
   const setTab = (id) => { setTabState(id); try { localStorage.setItem('baytuna_tab', id) } catch {} }
   const [theme, setTheme] = useState(() =>
     localStorage.getItem('baytuna_theme') ||
@@ -3483,6 +4209,7 @@ function App() {
   const [secMgr, setSecMgr] = useState(false)
   const [familyMgr, setFamilyMgr] = useState(false)
   const [backupMgr, setBackupMgr] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState(null)
 
   useEffect(() => {
@@ -3535,7 +4262,8 @@ function App() {
   const setPrefs = (patch) => store.updatePrefs(patch)
   const cats = (prefs.cats && prefs.cats.length) ? prefs.cats : DEFAULT_CATS
 
-  const tabs = (prefs.tabs && prefs.tabs.length) ? prefs.tabs : DEFAULT_TABS
+  const storedTabs = (prefs.tabs && prefs.tabs.length) ? prefs.tabs : DEFAULT_TABS
+  const tabs = storedTabs.some(item => item.id === 'today') ? storedTabs : [DEFAULT_TABS[0], ...storedTabs]
   const visibleTabs = tabs.filter(t => !(ui.hiddenTabs || []).includes(t.id))
   const visibleKey = visibleTabs.map(t => t.id).join(',')
   useEffect(() => {
@@ -3572,6 +4300,7 @@ function App() {
 
   const ctx = {
     cats, prefs, setPrefs, tabs, store, ui, setUI, ask, notify, session, shoppingCol, familyId: session.familyId,
+    setTab, openSearch: () => setSearchOpen(true),
     openCats: () => setCatMgr(true),
     openSecs: () => setSecMgr(true),
     openFamily: () => setFamilyMgr(true),
@@ -3587,6 +4316,7 @@ function App() {
       : section(store, t.id, requestUndo)
     const props = { col, tab: t, key: t.id }
     switch (t.type) {
+      case 'dashboard': return html`<${TodayDashboard} key=${t.id} />`
       case 'shopping': return html`<${ShoppingList} ...${props} />`
       case 'travel': return html`<${Travel} ...${props} />`
       case 'packing': return html`<${PackingList} ...${props} />`
@@ -3605,6 +4335,7 @@ function App() {
         </div>
         <div class="header-acts">
           <${SyncPill} state=${shoppingCol.syncState} writeError=${shoppingCol.writeError} onRetry=${() => shoppingCol.writeError && shoppingCol.writeError.retry()} />
+          <button class="theme-toggle" onClick=${() => setSearchOpen(true)} title="بحث">🔎</button>
           <button class="theme-toggle" onClick=${toggleTheme} title=${theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}>
             ${theme === 'dark' ? '☀️' : '🌙'}
           </button>
@@ -3637,6 +4368,7 @@ function App() {
         </div>
       </nav>
 
+      ${searchOpen && html`<${GlobalSearch} onClose=${() => setSearchOpen(false)} onGo=${id => { setTab(id); setSearchOpen(false) }} />`}
       ${settings && html`<${Settings} onClose=${() => setSettings(false)} theme=${theme} setTheme=${setTheme} />`}
       ${secMgr && html`<${SectionManager} onClose=${() => setSecMgr(false)} />`}
       ${catMgr && html`<${CategoryManager} onClose=${() => setCatMgr(false)} />`}
