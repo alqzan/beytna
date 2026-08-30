@@ -86,6 +86,9 @@
   --card: #ffffff;
   --danger: #ef4444;
   --danger-soft: #fef2f2;
+  --map-ocean: #eef6ff;
+  --map-land: #d7e8da;
+  --map-grid: #b7cce0;
   --bg-pattern: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='44'%20height='44'%20viewBox='0%200%2044%2044'%3E%3Cpath%20d='M22%2033C22%2033%206%2022%206%2013%206%208%2010%206%2013.5%206%2017%206%2020%208.5%2022%2012%2024%208.5%2027%206%2030.5%206%2034%206%2038%208%2038%2013%2038%2022%2022%2033%2022%2033Z'%20fill='%23f43f5e'%20fill-opacity='0.06'/%3E%3C/svg%3E");
   --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow-lg: 0 10px 30px rgba(244,63,94,.18);
@@ -112,6 +115,9 @@
   --card: #1f1e24;
   --danger: #fb7185;
   --danger-soft: #3a2024;
+  --map-ocean: #172534;
+  --map-land: #294536;
+  --map-grid: #3b5368;
   --bg-pattern: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='44'%20height='44'%20viewBox='0%200%2044%2044'%3E%3Cpath%20d='M22%2033C22%2033%206%2022%206%2013%206%208%2010%206%2013.5%206%2017%206%2020%208.5%2022%2012%2024%208.5%2027%206%2030.5%206%2034%206%2038%208%2038%2013%2038%2022%2022%2033%2022%2033Z'%20fill='%23fb7185'%20fill-opacity='0.07'/%3E%3C/svg%3E");
   --shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
   --shadow-lg: 0 10px 30px rgba(0,0,0,.5);
@@ -881,6 +887,51 @@ textarea.field { resize: none; line-height: 1.7; }
 .travel-map-row b { color: var(--ink); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .travel-map-row small { color: var(--ink-faint); font-size: 10px; margin-top: 2px; }
 .travel-map-row strong { color: var(--blue-text); font-size: 10px; white-space: nowrap; }
+.travel-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.world-map-open { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 12px; background: var(--rose-light); color: var(--rose-dark); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.world-map-open:active { transform: scale(.97); }
+.world-map-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+.world-map-kpi { background: var(--surface-2); border-radius: 13px; padding: 8px 3px; text-align: center; min-width: 0; }
+.world-map-kpi b, .world-map-kpi small { display: block; }
+.world-map-kpi b { color: var(--ink-strong); font-size: 17px; line-height: 1.2; }
+.world-map-kpi small { color: var(--ink-faint); font-size: 9px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.world-map-legend { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 12px; margin: 4px 0 12px; }
+.world-map-legend-item { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-soft); font-size: 10px; font-weight: 700; }
+.world-map-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.world-map-dot.planned { background: var(--blue-text); }
+.world-map-dot.soon { background: var(--amber); }
+.world-map-dot.visited { background: var(--green); }
+.world-map-frame { overflow: hidden; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--line-2); margin-bottom: 12px; background: var(--map-ocean); }
+.world-map-svg { display: block; width: 100%; height: auto; min-height: 210px; }
+.world-map-ocean { fill: var(--map-ocean); }
+.world-map-grid { fill: none; stroke: var(--map-grid); stroke-width: 1; stroke-dasharray: 4 8; opacity: .55; }
+.world-map-land { fill: var(--map-land); stroke: var(--map-grid); stroke-width: 1.4; opacity: .94; }
+.world-map-marker { cursor: pointer; outline: none; }
+.world-map-marker circle { stroke: var(--card); stroke-width: 3; transition: r .15s, filter .15s; }
+.world-map-marker text { pointer-events: none; font-family: sans-serif; font-size: 15px; dominant-baseline: central; }
+.world-map-marker:hover circle, .world-map-marker:focus circle { r: 14; filter: drop-shadow(0 3px 4px rgba(0,0,0,.22)); }
+.world-marker-planned circle { fill: var(--blue-text); }
+.world-marker-soon circle { fill: var(--amber); }
+.world-marker-visited circle { fill: var(--green); }
+.world-filter { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; margin-bottom: 10px; }
+.world-filter .chip { font-size: 11px; padding: 6px 10px; }
+.world-country-list { display: flex; flex-direction: column; gap: 8px; }
+.world-country-card { background: var(--surface-2); border-radius: 16px; padding: 10px; }
+.world-country-main { width: 100%; display: flex; align-items: center; gap: 9px; text-align: right; }
+.world-country-flag { font-size: 27px; flex-shrink: 0; }
+.world-country-copy { flex: 1; min-width: 0; }
+.world-country-copy b, .world-country-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.world-country-copy b { color: var(--ink-strong); font-size: 13px; }
+.world-country-copy small { color: var(--ink-faint); font-size: 10px; margin-top: 3px; }
+.world-country-main .status-pill { display: inline-block; width: auto; flex-shrink: 0; font-size: 10px; }
+.world-country-details { margin: 8px 0 0 36px; padding-top: 8px; border-top: 1px solid var(--line-2); }
+.world-country-meta { display: flex; flex-wrap: wrap; gap: 5px; color: var(--ink-faint); font-size: 10px; }
+.world-country-note { color: var(--ink-soft); background: var(--card); border-radius: 10px; padding: 7px 8px; margin-top: 7px; font-size: 10px; line-height: 1.6; }
+.world-country-statuses { display: flex; gap: 5px; margin-top: 8px; }
+.world-status-btn { flex: 1; padding: 6px 3px; border-radius: 10px; background: var(--card); color: var(--ink-faint); font-size: 10px; font-weight: 700; }
+.world-status-btn.active { box-shadow: 0 0 0 2px currentColor; }
+.world-unmapped { color: var(--ink-faint); font-size: 10px; text-align: center; line-height: 1.6; margin-top: 10px; }
+.world-map-empty { text-align: center; background: var(--surface-2); border-radius: 14px; padding: 17px 10px; color: var(--ink-faint); font-size: 12px; line-height: 1.7; }
 .booking-type-grid { grid-template-columns: repeat(3, 1fr); }
 
 .dashboard-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(135deg, var(--rose-light), var(--amber-light)); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
@@ -2395,6 +2446,152 @@ const travelCitiesOf = (dest) => {
     : cities
 }
 
+// نقاط تقريبية للدول المعروفة حتى تبقى الخريطة مدمجة وتعمل بدون خدمة خرائط خارجية.
+// الدول غير الموجودة هنا تظهر في القائمة مع تنبيه بسيط بدل وضعها في مكان غير دقيق.
+const WORLD_COUNTRY_POINTS = {
+  'السعودية': { lon: 45, lat: 24.5 }, 'الإمارات': { lon: 54.4, lat: 24.5 },
+  'مصر': { lon: 30.8, lat: 30 }, 'تركيا': { lon: 35.2, lat: 39 },
+  'اليابان': { lon: 138.3, lat: 36.2 }, 'فرنسا': { lon: 2.2, lat: 46.2 },
+  'إيطاليا': { lon: 12.5, lat: 42.8 }, 'إسبانيا': { lon: -3.7, lat: 40.4 },
+  'بريطانيا': { lon: -3.4, lat: 55.4 }, 'إنجلترا': { lon: -1.5, lat: 52.5 },
+  'لندن': { lon: -0.1, lat: 51.5 }, 'أمريكا': { lon: -100, lat: 38 },
+  'الولايات المتحدة': { lon: -100, lat: 38 }, 'الولايات المتحدة الأمريكية': { lon: -100, lat: 38 },
+  'كندا': { lon: -106, lat: 56 }, 'أستراليا': { lon: 133, lat: -25 },
+  'المالديف': { lon: 73.5, lat: 3.2 }, 'تايلاند': { lon: 100.5, lat: 15.8 },
+  'سنغافورة': { lon: 103.8, lat: 1.3 }, 'اليونان': { lon: 22, lat: 39 },
+  'المغرب': { lon: -7, lat: 31.8 }, 'الأردن': { lon: 36, lat: 31.2 },
+  'لبنان': { lon: 35.8, lat: 33.9 }, 'سويسرا': { lon: 8.2, lat: 46.8 },
+  'ألمانيا': { lon: 10.5, lat: 51 }, 'هولندا': { lon: 5.3, lat: 52.2 },
+  'البرتغال': { lon: -8.2, lat: 39.5 }, 'النمسا': { lon: 14, lat: 47.5 },
+  'إندونيسيا': { lon: 117, lat: -2 }, 'بالي': { lon: 115.2, lat: -8.4 },
+  'ماليزيا': { lon: 101.7, lat: 4.2 }, 'البحرين': { lon: 50.5, lat: 26.1 },
+  'الكويت': { lon: 47.5, lat: 29.4 }, 'قطر': { lon: 51.2, lat: 25.3 },
+  'عمان': { lon: 57, lat: 21 }, 'جورجيا': { lon: 43.5, lat: 42 },
+  'أذربيجان': { lon: 47.6, lat: 40.4 }, 'الصين': { lon: 104, lat: 35 },
+  'كوريا الجنوبية': { lon: 127.8, lat: 36 }, 'كوريا': { lon: 127.8, lat: 36 },
+  'الهند': { lon: 78.9, lat: 21 }, 'روسيا': { lon: 90, lat: 60 },
+  'البرازيل': { lon: -51, lat: -10 }, 'المكسيك': { lon: -102, lat: 23 },
+  'النرويج': { lon: 8, lat: 62 }, 'السويد': { lon: 15, lat: 62 },
+  'الدنمارك': { lon: 10, lat: 56 }, 'فنلندا': { lon: 26, lat: 64 },
+  'التشيك': { lon: 15.5, lat: 49.8 }, 'بولندا': { lon: 19, lat: 52 },
+  'أيرلندا': { lon: -8, lat: 53 }, 'جنوب أفريقيا': { lon: 24, lat: -30 },
+  'نيوزيلندا': { lon: 172, lat: -41 }, 'فيتنام': { lon: 108, lat: 16 },
+  'الفلبين': { lon: 122, lat: 12 }, 'سريلانكا': { lon: 80.7, lat: 7.8 },
+  'نيبال': { lon: 84, lat: 28 }, 'تنزانيا': { lon: 35, lat: -6 },
+  'موريشيوس': { lon: 57.5, lat: -20.2 }, 'سيشل': { lon: 55.5, lat: -4.6 },
+  'قبرص': { lon: 33, lat: 35 }, 'رومانيا': { lon: 25, lat: 46 },
+  'المجر': { lon: 19, lat: 47.2 }, 'كرواتيا': { lon: 15.5, lat: 45.2 },
+  'صربيا': { lon: 21, lat: 44 }, 'ألبانيا': { lon: 20, lat: 41.2 },
+  'موناكو': { lon: 7.4, lat: 43.7 }, 'إسطنبول': { lon: 29, lat: 41 }
+}
+
+const worldMapPoint = (country) => {
+  const point = WORLD_COUNTRY_POINTS[norm(country)]
+  if (!point) return null
+  return { x: ((point.lon + 180) / 360) * 1000, y: ((90 - point.lat) / 180) * 520 }
+}
+
+const worldDestinationStats = (dest) => {
+  const cities = travelCitiesOf(dest)
+  const places = cities.flatMap(city => travelPlacesOf(city))
+  return {
+    cities: cities.filter(city => !city.legacy).length,
+    places: places.length,
+    visited: places.filter(place => place.visited).length,
+    days: Array.isArray(dest.days) ? dest.days.length : 0,
+    bookings: Array.isArray(dest.bookings) ? dest.bookings.length : 0,
+  }
+}
+
+function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
+  const [filter, setFilter] = useState('all')
+  const statusCounts = Object.fromEntries(Object.keys(STATUS).map(key => [key, items.filter(item => (item.status || 'planned') === key).length]))
+  const shown = filter === 'all' ? items : items.filter(item => (item.status || 'planned') === filter)
+  const mapped = shown.filter(item => worldMapPoint(item.country))
+  const unmapped = shown.filter(item => !worldMapPoint(item.country))
+  const stats = shown.reduce((acc, item) => {
+    const next = worldDestinationStats(item)
+    acc.cities += next.cities
+    acc.places += next.places
+    return acc
+  }, { cities: 0, places: 0 })
+
+  return html`
+    <${Modal} title="خريطة العالم 🌍" sub="اللون يوضح حالة كل دولة — اضغطوا على الدولة لفتح تفاصيلها وخطتها" onClose=${onClose}>
+      <div class="world-map-kpis">
+        <div class="world-map-kpi"><b>${items.length}</b><small>دول مسجلة</small></div>
+        <div class="world-map-kpi"><b>${statusCounts.visited || 0}</b><small>تمت زيارتها</small></div>
+        <div class="world-map-kpi"><b>${statusCounts.soon || 0}</b><small>قريباً</small></div>
+        <div class="world-map-kpi"><b>${stats.places}</b><small>أماكن محفوظة</small></div>
+      </div>
+
+      <div class="world-map-legend">
+        ${Object.entries(STATUS).map(([key, meta]) => html`<span class="world-map-legend-item" key=${key}><i class=${'world-map-dot ' + key}></i>${meta.label}</span>`)}
+      </div>
+
+      <div class="world-map-frame">
+        <svg class="world-map-svg" viewBox="0 0 1000 520" role="img" aria-label="خريطة العالم مع وجهات بيتنا">
+          <rect class="world-map-ocean" x="0" y="0" width="1000" height="520" rx="24" />
+          <path class="world-map-grid" d="M0 104H1000 M0 208H1000 M0 312H1000 M0 416H1000 M200 0V520 M400 0V520 M600 0V520 M800 0V520" />
+          <g class="world-map-land">
+            <path d="M78 124C113 91 179 73 235 87L282 108 302 137 275 158 251 171 243 201 216 218 196 247 169 230 157 204 124 190 101 166Z" />
+            <path d="M277 282L315 297 339 337 351 383 335 438 307 474 282 443 276 399 258 360Z" />
+            <path d="M447 116L480 94 523 91 557 105 591 95 629 100 662 112 702 116 733 132 777 141 817 158 852 181 841 208 809 218 783 207 753 224 723 215 691 229 660 220 633 232 606 218 577 220 551 203 521 198 501 177 473 171 455 148Z" />
+            <path d="M470 205L510 201 545 219 562 258 557 300 542 338 519 382 490 371 469 335 456 287 448 245Z" />
+            <path d="M714 331L755 321 802 327 846 344 875 373 868 404 839 429 797 438 753 424 721 404 702 369Z" />
+            <path d="M865 142L887 132 907 143 899 164 878 167Z" />
+            <path d="M428 384L470 394 519 406 579 414 642 423 705 432 768 444 830 455 890 466 954 476 954 520 408 520Z" />
+          </g>
+          ${mapped.map((dest, index) => {
+            const base = worldMapPoint(dest.country)
+            const same = mapped.slice(0, index).filter(item => worldMapPoint(item.country)?.x === base.x && worldMapPoint(item.country)?.y === base.y).length
+            const point = { x: base.x + ((same % 3) - 1) * 11, y: base.y + Math.floor(same / 3) * 12 }
+            const status = dest.status || 'planned'
+            const meta = STATUS[status] || STATUS.planned
+            return html`
+              <g class=${'world-map-marker world-marker-' + status} key=${dest.id} role="button" tabIndex="0" aria-label=${`${dest.country}: ${meta.label}`} onClick=${() => onOpenCountry(dest.id)} onKeyDown=${e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenCountry(dest.id) } }}>
+                <title>${dest.country} — ${meta.label}</title>
+                <circle cx=${point.x} cy=${point.y} r="11" />
+                <text x=${point.x} y=${point.y} textAnchor="middle">${dest.flag || '🌍'}</text>
+              </g>
+            `
+          })}
+        </svg>
+      </div>
+
+      <div class="world-filter">
+        <button class=${'chip' + (filter === 'all' ? ' active' : '')} onClick=${() => setFilter('all')}>الكل (${items.length})</button>
+        ${Object.entries(STATUS).map(([key, meta]) => html`<button key=${key} class=${'chip' + (filter === key ? ' active' : '')} onClick=${() => setFilter(key)}>${meta.label} (${statusCounts[key] || 0})</button>`)}
+      </div>
+
+      ${shown.length > 0
+        ? html`<div class="world-country-list">${shown.map(dest => {
+          const meta = STATUS[dest.status] || STATUS.planned
+          const summary = worldDestinationStats(dest)
+          const note = dest.tripNotes || dest.notes
+          return html`
+            <article class="world-country-card" key=${dest.id}>
+              <button class="world-country-main" onClick=${() => onOpenCountry(dest.id)}>
+                <span class="world-country-flag">${dest.flag || '🌍'}</span>
+                <span class="world-country-copy"><b>${dest.country}</b><small>${summary.cities} مدن · ${summary.places} أماكن · ${summary.days} أيام · ${summary.bookings} حجوزات</small></span>
+                <span class=${'status-pill ' + meta.cls}>${meta.label}</span>
+              </button>
+              <div class="world-country-details">
+                <div class="world-country-meta"><span>✅ ${summary.visited}/${summary.places} أماكن تمت</span><span>${worldMapPoint(dest.country) ? '📍 على الخريطة' : '🌍 موقع الخريطة يحتاج تحديداً'}</span></div>
+                ${note && html`<p class="world-country-note">📝 ${note}</p>`}
+                <div class="world-country-statuses">
+                  ${Object.entries(STATUS).map(([key, statusMeta]) => html`<button key=${key} class=${'world-status-btn ' + (dest.status === key ? statusMeta.cls + ' active' : '')} onClick=${e => { e.stopPropagation(); onStatus(dest.id, key) }}>${statusMeta.label}</button>`)}
+                </div>
+              </div>
+            </article>
+          `
+        })}</div>`
+        : html`<div class="world-map-empty">ما سجلتوا أي دولة بهذه الحالة بعد.<br />أضيفوا وجهة من قسم السفر وبتظهر هنا مباشرة.</div>`}
+      ${unmapped.length > 0 && html`<p class="world-unmapped">الدول غير الظاهرة كنقطة على الخريطة: ${unmapped.map(item => item.country).join('، ')} — تفاصيلها وحالتها محفوظة في القائمة فوق.</p>`}
+    <//>
+  `
+}
+
 function TravelLink({ link, onDelete }) {
   const url = safeTravelUrl(link?.url)
   if (!url) return null
@@ -3028,6 +3225,7 @@ function Travel({ col, tab }) {
   const [flag, setFlag] = useState('🌍')
   const [status, setStatus] = useState('planned')
   const [filter, setFilter] = useState('all')
+  const [mapOpen, setMapOpen] = useState(false)
 
   const selected = items.find(d => d.id === selId)
 
@@ -3053,7 +3251,10 @@ function Travel({ col, tab }) {
     <div class="page">
       <div class="page-head">
         <div><h2>${tab.title || tab.label}</h2><p class="travel-intro">اختاروا وجهة، ثم رتّبوا مدنكم وأماكنكم وروابطكم.</p></div>
-        <span class="badge badge-rose">${items.length} وجهة</span>
+        <div class="travel-head-actions">
+          <button class="world-map-open" onClick=${() => setMapOpen(true)}>🌍 الخريطة</button>
+          <span class="badge badge-rose">${items.length} وجهة</span>
+        </div>
       </div>
 
       ${items.length > 1 && html`
@@ -3101,6 +3302,8 @@ function Travel({ col, tab }) {
           </div>
         <//>
       `}
+
+      ${mapOpen && html`<${WorldMap} items=${items} onClose=${() => setMapOpen(false)} onOpenCountry=${id => { setMapOpen(false); setSelId(id) }} onStatus=${(id, next) => { update(id, { status: next }); buzz() }} />`}
     </div>
   `
 }
