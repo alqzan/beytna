@@ -1297,13 +1297,20 @@ function useFamilySession(uid) {
     if (targetUid === uid) { clearCachedFamily(); setFamilyId(null); setStatus('onboarding') }
   }
 
+  // خروج محلي آمن: يزيل اختيار البيت من هذا الجهاز فقط، ولا يحذف أي بيانات أو عضوية عن بُعد.
+  const leaveFamilyOnThisDevice = () => {
+    clearCachedFamily()
+    setFamilyId(null)
+    setStatus('onboarding')
+  }
+
   const renameDevice = async (targetUid, label) => {
     await updateDoc(doc(db, 'families', familyId, 'members', targetUid), { deviceLabel: norm(label) || 'جهاز' })
   }
 
   return {
     status, familyId, uid, members, invites,
-    createFamily, createInvite, createInviteFor, joinFamily, revokeInvite, revokeMember, renameDevice,
+    createFamily, createInvite, createInviteFor, joinFamily, revokeInvite, revokeMember, leaveFamilyOnThisDevice, renameDevice,
   }
 }
 
@@ -2754,7 +2761,7 @@ function SectionManager({ onClose }) {
 /* =========================== الإعدادات =========================== */
 
 function Settings({ onClose, theme, setTheme }) {
-  const { tabs, ui, openCats, openSecs, openFamily, openBackup, session } = useApp()
+  const { tabs, ui, openCats, openSecs, openFamily, openBackup, session, ask } = useApp()
   const hiddenCount = (ui.hiddenTabs || []).length
   return html`
     <${Modal} title="الإعدادات ⚙️" onClose=${onClose}>
@@ -2775,6 +2782,13 @@ function Settings({ onClose, theme, setTheme }) {
       <${ActRow} icon="🔐" title="بيتك وأجهزتك" desc=${`${session.members.length} جهاز — دعوة، إبطال`}
         onClick=${() => { onClose(); openFamily() }} />
       <${ActRow} icon="💾" title="نسخة احتياطية" desc="تصدير/استيراد ملف JSON" onClick=${() => { onClose(); openBackup() }} />
+      <${ActRow} icon="🚪" title="تسجيل خروج من البيت" desc="يخرج هذا الجهاز فقط — البيانات لا تنحذف"
+        onClick=${() => ask({
+          title: 'الخروج من البيت على هذا الجهاز؟',
+          text: 'لن نحذف أي بيانات. للرجوع ستحتاج رمز الدعوة من البيت.',
+          ok: 'خروج', danger: true,
+          onOk: () => { onClose(); session.leaveFamilyOnThisDevice() },
+        })} />
 
       <div class="sep"></div>
       <p class="hint">${db ? '☁️ المزامنة الفورية شغالة بين الجهازين' : '💾 حالياً محلي على هذا الجهاز فقط'}</p>
