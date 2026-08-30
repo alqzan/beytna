@@ -269,17 +269,22 @@ input, textarea { font-family: 'ThmanyahSans', sans-serif; }
 .check.on { background: var(--green); border-color: var(--green); }
 .check.on.rose:hover, .check.rose:hover { border-color: var(--green); }
 
-/* ====== Travel grid ====== */
+/* ====== Travel overhaul: destinations -> cities -> places -> links ====== */
+.travel-intro { color: var(--ink-faint); font-size: 12px; margin-top: 4px; line-height: 1.6; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .dest {
-  background: var(--card); border-radius: 18px; padding: 16px; box-shadow: var(--shadow);
+  background: var(--card); border-radius: 20px; padding: 16px; box-shadow: var(--shadow);
   position: relative; transition: transform .12s, box-shadow .15s; text-align: center;
 }
 .dest:active { transform: scale(.96); }
 .dest .flag { font-size: 38px; margin-bottom: 8px; }
 .dest .name { font-weight: 700; color: var(--ink-strong); font-size: 14px; margin-bottom: 8px; line-height: 1.3; }
 .dest .del { position: absolute; top: 8px; left: 8px; z-index: 2; }
-.dest .meta { font-size: 11px; color: var(--ink-faint); margin-top: 8px; }
+.dest .meta { font-size: 11px; color: var(--ink-faint); margin-top: 8px; line-height: 1.5; }
+.dest-open {
+  width: 100%; margin-top: 12px; border-radius: 12px; padding: 8px;
+  color: var(--rose-dark); background: var(--rose-50); font-size: 12px; font-weight: 700;
+}
 .status-pill {
   font-size: 11px; padding: 4px 8px; border-radius: 999px; font-weight: 600;
   display: block; text-align: center;
@@ -293,9 +298,18 @@ input, textarea { font-family: 'ThmanyahSans', sans-serif; }
   display: flex; align-items: center; gap: 4px; color: var(--ink-soft);
   margin-bottom: 18px; font-weight: 600; font-size: 14px;
 }
-.detail-head { background: var(--card); border-radius: 22px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; text-align: center; }
-.detail-head .flag { font-size: 50px; margin-bottom: 6px; }
-.detail-head h2 { font-size: 24px; font-weight: 700; color: var(--ink-strong); margin-bottom: 14px; }
+.travel-hero { background: var(--card); border-radius: 24px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.travel-hero-top { display: flex; align-items: center; gap: 14px; }
+.travel-hero-top .flag { font-size: 48px; flex-shrink: 0; }
+.travel-country-copy { min-width: 0; flex: 1; }
+.travel-country-button { text-align: right; display: block; width: 100%; }
+.travel-country-button h2 { font-size: 24px; font-weight: 700; color: var(--ink-strong); line-height: 1.3; }
+.travel-country-button small { font-size: 13px; }
+.travel-country-copy p { color: var(--ink-faint); font-size: 12px; margin-top: 5px; line-height: 1.5; }
+.travel-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin: 18px 0; }
+.travel-stat { background: var(--surface-2); border-radius: 14px; padding: 9px 3px; text-align: center; min-width: 0; }
+.travel-stat b { display: block; color: var(--ink-strong); font-size: 17px; line-height: 1.2; }
+.travel-stat small { display: block; color: var(--ink-faint); font-size: 10px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .status-opt {
   padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700;
@@ -303,24 +317,66 @@ input, textarea { font-family: 'ThmanyahSans', sans-serif; }
 }
 .status-opt.active { box-shadow: 0 0 0 2px currentColor; }
 
-.section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.section-title h3 { font-weight: 700; color: var(--ink); font-size: 16px; }
-
-.place {
-  background: var(--card); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow);
-  display: flex; align-items: flex-start; gap: 12px;
-}
-.place .body { flex: 1; min-width: 0; }
-.place .body p.title { font-size: 14px; font-weight: 600; color: var(--ink); }
-.place.done .body p.title { text-decoration: line-through; color: var(--ink-faint); }
-.place .body p.note { font-size: 12px; color: var(--ink-faint); margin-top: 2px; line-height: 1.6; }
-
-.add-dashed {
-  width: 100%; margin-top: 12px; border: 2px dashed #fda4af; color: #fb7185;
-  border-radius: 16px; padding: 12px; font-size: 14px; font-weight: 600;
-  transition: all .15s; background: transparent;
-}
+.travel-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.travel-toolbar .btn { font-size: 13px; padding: 11px 8px; }
+.travel-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
+.travel-section-heading h3 { font-weight: 700; color: var(--ink); font-size: 17px; }
+.travel-section-heading p { color: var(--ink-faint); font-size: 11px; margin-top: 3px; }
+.city-card { background: var(--card); border-radius: 21px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.city-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.city-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.city-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--rose-50); border-radius: 13px; font-size: 21px; flex-shrink: 0; }
+.city-title h3 { color: var(--ink-strong); font-size: 16px; line-height: 1.3; }
+.city-title small { color: var(--ink-faint); font-size: 11px; display: block; margin-top: 2px; }
+.city-actions { display: flex; align-items: center; gap: 3px; }
+.city-note { color: var(--ink-soft); background: var(--surface-2); border-radius: 12px; padding: 9px 11px; font-size: 12px; line-height: 1.6; margin: 12px 0; }
+.city-card .prog { margin: 12px 0; }
+.travel-place-list { display: flex; flex-direction: column; gap: 8px; }
+.travel-place-row { display: flex; align-items: flex-start; gap: 8px; padding: 11px 9px; border-radius: 15px; background: var(--surface-2); transition: opacity .2s; }
+.travel-place-row.done { opacity: .62; }
+.travel-place-row .check { margin-top: 2px; }
+.travel-place-main { flex: 1; min-width: 0; text-align: right; }
+.travel-place-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; line-height: 1.4; }
+.travel-place-title b { color: var(--ink); font-size: 13px; }
+.travel-place-row.done .travel-place-title b { text-decoration: line-through; color: var(--ink-faint); }
+.travel-type-pill { color: var(--rose-dark); background: var(--rose-light); border-radius: 999px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
+.travel-place-note { display: block; color: var(--ink-faint); font-size: 11px; line-height: 1.6; margin-top: 4px; white-space: pre-wrap; }
+.travel-inline-links { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.travel-inline-link { color: var(--blue-text); background: var(--blue-light); border-radius: 8px; padding: 3px 6px; font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-dashed { width: 100%; margin-top: 12px; border: 2px dashed #fda4af; color: #fb7185; border-radius: 15px; padding: 11px; font-size: 13px; font-weight: 600; transition: all .15s; background: transparent; }
 .add-dashed:hover { border-color: var(--rose); background: var(--rose-50); }
+
+.travel-notes-card, .travel-links-card { background: var(--card); border-radius: 21px; padding: 16px; box-shadow: var(--shadow); margin: 20px 0 14px; }
+.travel-links-card { margin-top: 14px; }
+.travel-links-list { display: flex; flex-direction: column; gap: 8px; }
+.travel-links-list.compact { margin-bottom: 10px; }
+.travel-link-row { display: flex; align-items: center; gap: 6px; background: var(--surface-2); border-radius: 13px; padding: 8px 9px; min-width: 0; }
+.travel-link-anchor { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; text-align: right; }
+.travel-link-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 10px; font-size: 16px; flex-shrink: 0; }
+.travel-link-copy { min-width: 0; flex: 1; }
+.travel-link-copy b { display: block; color: var(--ink); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.travel-link-copy small { display: block; color: var(--ink-faint); font-size: 10px; direction: ltr; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.travel-link-open { color: var(--blue-text); font-size: 16px; flex-shrink: 0; }
+.travel-links-empty { color: var(--ink-faint); font-size: 12px; background: var(--surface-2); border-radius: 12px; padding: 12px; text-align: center; }
+.travel-empty { background: var(--card); border-radius: 21px; padding: 34px 18px; text-align: center; box-shadow: var(--shadow); }
+.travel-empty > div { font-size: 44px; margin-bottom: 10px; }
+.travel-empty b { color: var(--ink-strong); font-size: 15px; }
+.travel-empty p { color: var(--ink-faint); font-size: 12px; margin: 6px 0 16px; }
+.travel-empty .btn { width: 100%; }
+.field-label { color: var(--ink-soft); font-size: 12px; font-weight: 700; margin: 12px 0 7px; }
+.travel-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.travel-type-opt { display: flex; flex-direction: column; align-items: center; gap: 3px; background: var(--surface-2); color: var(--ink-soft); border-radius: 13px; padding: 8px 3px; font-size: 10px; font-weight: 700; line-height: 1.4; }
+.travel-type-opt span { font-size: 19px; }
+.travel-type-opt.active { color: var(--rose-dark); background: var(--rose-light); box-shadow: 0 0 0 2px var(--rose); }
+.travel-editor-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.travel-editor-row .field-label { margin-bottom: 7px; }
+.travel-editor-row .hint { margin: 0; font-size: 10px; }
+.travel-link-draft { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+.travel-link-draft .btn { font-size: 12px; padding: 9px; }
+.link-url { direction: ltr; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.form-error { color: var(--danger); font-size: 11px; margin-top: 6px; }
+.travel-visited-toggle { width: 100%; margin-top: 14px; border: 1px solid var(--line-2); color: var(--ink-soft); border-radius: 13px; padding: 9px; font-size: 12px; font-weight: 700; }
+.travel-visited-toggle.active { color: var(--green-text); background: var(--green-light); border-color: var(--green); }
 
 .notes-area {
   width: 100%; background: var(--card); border: 2px solid var(--line); border-radius: 16px;
@@ -2117,7 +2173,7 @@ function CategoryManager({ onClose }) {
   `
 }
 
-/* =========================== ٣) السفر =========================== */
+/* =========================== ٣) السفر — إعادة بناء كاملة =========================== */
 
 const STATUS = {
   planned: { label: 'مخطط', cls: 'st-planned' },
@@ -2136,109 +2192,397 @@ const FLAGS = {
   'الكويت': '🇰🇼', 'قطر': '🇶🇦', 'عمان': '🇴🇲', 'جورجيا': '🇬🇪', 'أذربيجان': '🇦🇿',
 }
 
+const PLACE_TYPES = {
+  landmark: { label: 'معلم', icon: '🏛️' },
+  food: { label: 'أكل ومقاهي', icon: '🍽️' },
+  activity: { label: 'نشاط', icon: '🎟️' },
+  shopping: { label: 'تسوق', icon: '🛍️' },
+  stay: { label: 'سكن', icon: '🏨' },
+  other: { label: 'أخرى', icon: '📌' },
+}
+
+const LEGACY_CITY_ID = '__legacy_places__'
+const cleanTravelText = (value) => (value || '').toString().trim()
+
+// لا نعرض إلا روابط http/https حتى لا يصبح الرابط المدخل مساراً لتنفيذ javascript.
+const safeTravelUrl = (raw) => {
+  let value = cleanTravelText(raw)
+  if (!value) return ''
+  if (!/^https?:\/\//i.test(value)) value = 'https://' + value
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : ''
+  } catch { return '' }
+}
+
+const travelLinkMeta = (raw) => {
+  const url = safeTravelUrl(raw)
+  let host = ''
+  try { host = new URL(url).hostname.toLowerCase().replace(/^www\./, '') } catch {}
+  if (host.includes('sheets.google.') || host.includes('docs.google.')) return { label: 'جدول / مستند', icon: '📊' }
+  if (host.includes('google.') || host.includes('maps.') || host.includes('goo.gl')) return { label: 'خرائط قوقل', icon: '📍' }
+  if (host.includes('tiktok.')) return { label: 'تيك توك', icon: '🎵' }
+  if (host.includes('instagram.')) return { label: 'إنستغرام', icon: '📸' }
+  if (host.includes('youtube.') || host === 'youtu.be') return { label: 'يوتيوب', icon: '▶️' }
+  return { label: 'رابط', icon: '🔗' }
+}
+
+const travelLinkHost = (raw) => {
+  try { return new URL(safeTravelUrl(raw)).hostname.replace(/^www\./, '') } catch { return '' }
+}
+
+const travelLinksOf = (links) => (Array.isArray(links) ? links : []).map((link) => {
+  const url = safeTravelUrl(typeof link === 'string' ? link : link?.url)
+  if (!url) return null
+  const meta = travelLinkMeta(url)
+  return { id: (typeof link === 'object' && link.id) || genId(), label: cleanTravelText(typeof link === 'string' ? '' : link.label) || meta.label, url }
+}).filter(Boolean)
+
+const travelPlacesOf = (city) => Array.isArray(city?.places) ? city.places : []
+
+// البيانات القديمة كانت تضع الأماكن مباشرة داخل الوجهة. نعرضها كمدينة افتراضية
+// بدون نقلها أو حذفها، وبذلك تظهر فوراً مع النموذج الجديد.
+const travelCitiesOf = (dest) => {
+  const cities = Array.isArray(dest.cities)
+    ? dest.cities.map(city => ({ ...city, places: travelPlacesOf(city) }))
+    : []
+  const oldPlaces = Array.isArray(dest.places) ? dest.places : []
+  return oldPlaces.length
+    ? [{ id: LEGACY_CITY_ID, name: 'أماكن سابقة', note: 'أماكن محفوظة من النسخة السابقة — تقدرون تضيفون مدن جديدة حولها.', places: oldPlaces, legacy: true }, ...cities]
+    : cities
+}
+
+function TravelLink({ link, onDelete }) {
+  const url = safeTravelUrl(link?.url)
+  if (!url) return null
+  const meta = travelLinkMeta(url)
+  return html`
+    <div class="travel-link-row">
+      <a class="travel-link-anchor" href=${url} target="_blank" rel="noopener noreferrer" onClick=${e => e.stopPropagation()}>
+        <span class="travel-link-icon">${meta.icon}</span>
+        <span class="travel-link-copy"><b>${link.label || meta.label}</b><small>${travelLinkHost(url)}</small></span>
+        <span class="travel-link-open">↗</span>
+      </a>
+      ${onDelete && html`<button class="icon-x" title="حذف الرابط" onClick=${e => { e.stopPropagation(); onDelete() }}>✕</button>`}
+    </div>
+  `
+}
+
+function LinkEditor({ onClose, onSave }) {
+  const [label, setLabel] = useState('')
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+
+  const save = () => {
+    const safe = safeTravelUrl(url)
+    if (!safe) { setError('ألصق رابطاً صحيحاً يبدأ بـ https:// أو http://'); return }
+    onSave({ id: genId(), label: cleanTravelText(label) || travelLinkMeta(safe).label, url: safe })
+  }
+
+  return html`
+    <${Modal} title="إضافة رابط 🔗" sub="Google Maps أو TikTok أو جدول أو أي رابط آخر" onClose=${onClose}>
+      <p class="field-label">اسم الرابط (اختياري)</p>
+      <input class="field" dir="rtl" placeholder="مثلاً: مطعم شافناه في تيك توك..."
+        value=${label} onInput=${e => setLabel(e.target.value)} style=${{ marginBottom: '12px' }} />
+      <p class="field-label">الرابط</p>
+      <input class="field link-url" dir="ltr" type="url" autoFocus placeholder="https://..."
+        value=${url} onInput=${e => { setUrl(e.target.value); setError('') }}
+        onKeyDown=${e => e.key === 'Enter' && save()} />
+      ${error && html`<p class="form-error">${error}</p>`}
+      <p class="hint">نكتشف نوع الرابط تلقائياً، وتقدر تسميه بأي اسم يناسبكم.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!cleanTravelText(url)} onClick=${save}>إضافة الرابط</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+    <//>
+  `
+}
+
+function CityEditor({ city, onClose, onSave }) {
+  const editing = !!city
+  const [name, setName] = useState(city?.name || '')
+  const [note, setNote] = useState(city?.note || '')
+  const save = () => {
+    const clean = norm(name)
+    if (!clean) return
+    onSave({ name: clean, note: cleanTravelText(note) })
+  }
+
+  return html`
+    <${Modal} title=${editing ? 'تعديل المدينة ✏️' : 'إضافة مدينة 🏙️'} sub="رتّبوا الأماكن داخل كل مدينة" onClose=${onClose}>
+      <p class="field-label">اسم المدينة</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: إسطنبول..."
+        value=${name} onInput=${e => setName(e.target.value)}
+        onKeyDown=${e => e.key === 'Enter' && save()} />
+      <p class="field-label">ملاحظة المدينة (اختياري)</p>
+      <textarea class="field" rows="3" dir="rtl" placeholder="الحي المناسب، عدد الأيام، طريقة التنقل..."
+        value=${note} onInput=${e => setNote(e.target.value)}></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!norm(name)} onClick=${save}>${editing ? 'حفظ' : 'إضافة المدينة'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+    <//>
+  `
+}
+
+function PlaceEditor({ city, place, onClose, onSave, onDelete }) {
+  const editing = !!place
+  const [name, setName] = useState(place?.name || '')
+  const [type, setType] = useState(PLACE_TYPES[place?.type] ? place.type : 'landmark')
+  const [notes, setNotes] = useState(place?.notes ?? place?.note ?? '')
+  const [visited, setVisited] = useState(!!place?.visited)
+  const [links, setLinks] = useState(() => travelLinksOf(place?.links))
+  const [linkLabel, setLinkLabel] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkError, setLinkError] = useState('')
+
+  const addLink = () => {
+    const url = safeTravelUrl(linkUrl)
+    if (!url) { setLinkError('الرابط غير صحيح'); return }
+    setLinks(prev => [...prev, { id: genId(), label: cleanTravelText(linkLabel) || travelLinkMeta(url).label, url }])
+    setLinkLabel(''); setLinkUrl(''); setLinkError('')
+  }
+  const save = () => {
+    const clean = norm(name)
+    if (!clean) return
+    onSave({
+      ...(place || {}), id: place?.id || genId(), name: clean, type,
+      notes: cleanTravelText(notes), visited, links,
+    })
+  }
+
+  return html`
+    <${Modal} title=${editing ? 'تعديل المكان ✏️' : 'إضافة مكان أو شيء 📍'} sub=${`داخل ${city.name}`} onClose=${onClose}>
+      <p class="field-label">الاسم</p>
+      <input class="field" dir="rtl" autoFocus placeholder="مثلاً: برج غلطة أو مطعم..."
+        value=${name} onInput=${e => setName(e.target.value)} />
+
+      <p class="field-label">نوعه</p>
+      <div class="travel-type-grid">
+        ${Object.entries(PLACE_TYPES).map(([key, meta]) => html`
+          <button key=${key} class=${'travel-type-opt' + (type === key ? ' active' : '')} onClick=${() => setType(key)}>
+            <span>${meta.icon}</span>${meta.label}
+          </button>
+        `)}
+      </div>
+
+      <p class="field-label">ملاحظات</p>
+      <textarea class="field" rows="3" dir="rtl" placeholder="الأسعار، وقت الزيارة، الحجز، اللي عجبكم..."
+        value=${notes} onInput=${e => setNotes(e.target.value)}></textarea>
+
+      <div class="travel-editor-row">
+        <p class="field-label">الروابط</p>
+        <span class="hint">تفتح في نافذة جديدة</span>
+      </div>
+      ${links.length > 0 && html`<div class="travel-links-list compact">
+        ${links.map(link => html`<${TravelLink} key=${link.id} link=${link} onDelete=${() => setLinks(prev => prev.filter(item => item.id !== link.id))} />`)}
+      </div>`}
+      <div class="travel-link-draft">
+        <input class="field" dir="rtl" placeholder="اسم الرابط (اختياري)" value=${linkLabel} onInput=${e => setLinkLabel(e.target.value)} />
+        <input class="field link-url" dir="ltr" placeholder="https://..." value=${linkUrl}
+          onInput=${e => { setLinkUrl(e.target.value); setLinkError('') }} onKeyDown=${e => e.key === 'Enter' && addLink()} />
+        <button class="btn btn-ghost" disabled=${!cleanTravelText(linkUrl)} onClick=${addLink}>+ أضف الرابط</button>
+      </div>
+      ${linkError && html`<p class="form-error">${linkError}</p>`}
+
+      <button class=${'travel-visited-toggle' + (visited ? ' active' : '')} onClick=${() => setVisited(v => !v)}>
+        <span>${visited ? '✓' : '○'}</span> ${visited ? 'تمت الزيارة' : 'ما زرناه بعد'}
+      </button>
+      <div class="btn-row">
+        <button class="btn btn-primary" disabled=${!norm(name)} onClick=${save}>${editing ? 'حفظ التعديل' : 'إضافة'}</button>
+        <button class="btn btn-ghost" onClick=${onClose}>إلغاء</button>
+      </div>
+      ${editing && onDelete && html`<button class="link-danger" onClick=${onDelete}>🗑️ حذف المكان</button>`}
+    <//>
+  `
+}
+
 function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
   const { ask } = useApp()
-  const places = dest.places || []
-  const [open, setOpen] = useState(false)
-  const [pName, setPName] = useState('')
-  const [pNote, setPNote] = useState('')
-  const [notes, setNotes] = useState(dest.notes || '')
+  const cities = travelCitiesOf(dest)
+  const realCities = Array.isArray(dest.cities) ? dest.cities : []
+  const destinationLinks = travelLinksOf(dest.links)
+  const allPlaces = cities.flatMap(city => travelPlacesOf(city))
+  const visited = allPlaces.filter(place => place.visited).length
+  const [notes, setNotes] = useState(dest.tripNotes ?? dest.notes ?? '')
+  const [cityModal, setCityModal] = useState(false)
+  const [cityEdit, setCityEdit] = useState(null)
+  const [placeModal, setPlaceModal] = useState(null)
+  const [linkModal, setLinkModal] = useState(false)
   const [rename, setRename] = useState(false)
   const [name, setName] = useState(dest.country)
-  const [flag, setFlag] = useState(dest.flag)
+  const [flag, setFlag] = useState(dest.flag || '🌍')
 
-  // مزامنة الملاحظات لو عدّلها الطرف الثاني
-  useEffect(() => { setNotes(dest.notes || '') }, [dest.notes])
+  useEffect(() => { setNotes(dest.tripNotes ?? dest.notes ?? '') }, [dest.tripNotes, dest.notes])
 
-  const addPlace = () => {
-    if (!norm(pName)) return
-    const place = { id: genId(), name: norm(pName), notes: norm(pNote), visited: false }
-    onUpdate({ places: [...places, place] })
-    setPName(''); setPNote(''); setOpen(false)
-    buzz()
+  const updateCity = (cityId, patch) => {
+    if (cityId === LEGACY_CITY_ID) {
+      onUpdate({ places: patch.places || dest.places || [] })
+      return
+    }
+    onUpdate({ cities: realCities.map(city => city.id === cityId ? { ...city, ...patch } : city) })
   }
-  const togglePlace = (id) => { buzz(); onUpdate({ places: places.map(p => p.id === id ? { ...p, visited: !p.visited } : p) }) }
-  const delPlace = (id) => onUpdate({ places: places.filter(p => p.id !== id) })
 
-  const visited = places.filter(p => p.visited).length
+  const addCity = (data) => {
+    onUpdate({ cities: [...realCities, { id: genId(), name: data.name, note: data.note || '', places: [] }] })
+    setCityModal(false); buzz()
+  }
+
+  const saveCityEdit = (data) => {
+    if (!cityEdit) return
+    updateCity(cityEdit.id, data)
+    setCityEdit(null)
+  }
+
+  const savePlace = (cityId, nextPlace) => {
+    const city = cities.find(item => item.id === cityId)
+    if (!city) return
+    const places = travelPlacesOf(city)
+    const nextPlaces = nextPlace.id && places.some(place => place.id === nextPlace.id)
+      ? places.map(place => place.id === nextPlace.id ? nextPlace : place)
+      : [...places, nextPlace]
+    updateCity(cityId, { places: nextPlaces })
+    setPlaceModal(null); buzz()
+  }
+
+  const deletePlace = (cityId, placeId) => {
+    ask({
+      title: 'حذف المكان؟', text: 'بيُحذف المكان وملاحظاته وروابطه من هذه الرحلة.', ok: 'حذف', danger: true,
+      onOk: () => { const city = cities.find(item => item.id === cityId); if (city) updateCity(cityId, { places: travelPlacesOf(city).filter(place => place.id !== placeId) }); setPlaceModal(null) },
+    })
+  }
+
+  const deleteCity = (city) => ask({
+    title: `حذف مدينة «${city.name}»؟`,
+    text: `بيُحذف معها ${travelPlacesOf(city).length} مكان.`, ok: 'حذف', danger: true,
+    onOk: () => onUpdate({ cities: realCities.filter(item => item.id !== city.id) }),
+  })
+
+  const addDestinationLink = (link) => {
+    onUpdate({ links: [...destinationLinks, link] })
+    setLinkModal(false)
+  }
+
+  const deleteDestinationLink = (linkId) => ask({
+    title: 'حذف الرابط؟', ok: 'حذف', danger: true,
+    onOk: () => onUpdate({ links: destinationLinks.filter(link => link.id !== linkId) }),
+  })
+
+  const saveDestination = () => {
+    const clean = norm(name)
+    if (!clean) return
+    onUpdate({ country: clean, flag: cleanTravelText(flag) || '🌍' })
+    setRename(false)
+  }
 
   return html`
     <div class="page">
-      <button class="back" onClick=${onBack}><span>→</span> رجوع</button>
+      <button class="back" onClick=${onBack}><span>→</span> رجوع للوجهات</button>
 
-      <div class="detail-head">
-        <div class="flag">${dest.flag}</div>
-        <button class="detail-name" onClick=${() => { setName(dest.country); setFlag(dest.flag); setRename(true) }}>
-          <h2>${dest.country} <small>✏️</small></h2>
-        </button>
+      <div class="travel-hero">
+        <div class="travel-hero-top">
+          <div class="flag">${dest.flag || '🌍'}</div>
+          <div class="travel-country-copy">
+            <button class="travel-country-button" onClick=${() => { setName(dest.country); setFlag(dest.flag || '🌍'); setRename(true) }}>
+              <h2>${dest.country} <small>✏️</small></h2>
+            </button>
+            <p>خطة الرحلة — المدن والأماكن والأفكار في مكان واحد</p>
+          </div>
+        </div>
+        <div class="travel-summary">
+          <div class="travel-stat"><b>${cities.filter(city => !city.legacy).length}</b><small>مدن</small></div>
+          <div class="travel-stat"><b>${allPlaces.length}</b><small>أماكن وأشياء</small></div>
+          <div class="travel-stat"><b>${destinationLinks.length}</b><small>روابط</small></div>
+          <div class="travel-stat"><b>${visited}/${allPlaces.length || 0}</b><small>تمت الزيارة</small></div>
+        </div>
         <div class="status-row">
-          ${Object.entries(STATUS).map(([k, v]) => html`
-            <button
-              key=${k}
-              class=${'status-opt ' + (dest.status === k ? v.cls + ' active' : '')}
-              onClick=${() => onUpdate({ status: k })}
-            >${v.label}</button>
+          ${Object.entries(STATUS).map(([key, meta]) => html`
+            <button key=${key} class=${'status-opt ' + (dest.status === key ? meta.cls + ' active' : '')} onClick=${() => onUpdate({ status: key })}>${meta.label}</button>
           `)}
         </div>
       </div>
 
-      <div style=${{ marginBottom: '16px' }}>
-        <div class="section-title">
-          <h3>الأماكن 📍</h3>
-          ${places.length > 0 && html`<span class="badge badge-gray">${visited}/${places.length}</span>`}
-        </div>
-        ${places.length > 0 && html`<${Progress} done=${visited} total=${places.length} tone="rose" />`}
-        <div class="list">
-          ${places.map(p => html`
-            <div class=${'place' + (p.visited ? ' done' : '')} key=${p.id}>
-              <button class=${'check' + (p.visited ? ' on' : '')} onClick=${() => togglePlace(p.id)}>
-                ${p.visited ? '✓' : ''}
-              </button>
-              <div class="body">
-                <p class="title">${p.name}</p>
-                ${p.notes && html`<p class="note">${p.notes}</p>`}
-              </div>
-              <button class="icon-x" onClick=${() => delPlace(p.id)}>✕</button>
-            </div>
-          `)}
-        </div>
-        <button class="add-dashed" onClick=${() => setOpen(true)}>+ إضافة مكان</button>
+      <div class="travel-toolbar">
+        <button class="btn btn-primary" onClick=${() => setCityModal(true)}>+ إضافة مدينة</button>
+        <button class="btn btn-ghost" onClick=${() => setLinkModal(true)}>🔗 رابط للرحلة</button>
       </div>
 
-      <div>
-        <div class="section-title"><h3>ملاحظات 📝</h3></div>
-        <textarea
-          class="notes-area"
-          rows="4"
-          dir="rtl"
-          placeholder="أكتب خططكم وأفكاركم عن الرحلة..."
-          value=${notes}
-          onInput=${e => setNotes(e.target.value)}
-          onBlur=${() => onUpdate({ notes })}
-        ></textarea>
+      <div class="travel-section-heading">
+        <div><h3>المدن والأماكن 🗺️</h3><p>كل مدينة لها قائمتها الخاصة</p></div>
+        ${allPlaces.length > 0 && html`<span class="badge badge-rose">${visited}/${allPlaces.length}</span>`}
       </div>
+
+      ${cities.length === 0
+        ? html`<div class="travel-empty"><div>🏙️</div><b>ابدأوا بإضافة أول مدينة</b><p>بعدها أضيفوا المعالم، المطاعم، الأنشطة وروابطها.</p><button class="btn btn-primary" onClick=${() => setCityModal(true)}>+ إضافة مدينة</button></div>`
+        : html`
+          ${cities.map(city => {
+            const places = travelPlacesOf(city)
+            const done = places.filter(place => place.visited).length
+            return html`
+              <section class="city-card" key=${city.id}>
+                <div class="city-head">
+                  <div class="city-title">
+                    <span class="city-icon">${city.legacy ? '🗂️' : '🏙️'}</span>
+                    <div><h3>${city.name}</h3><small>${places.length} ${places.length === 1 ? 'مكان' : 'أماكن'}${city.legacy ? ' محفوظة' : ''}</small></div>
+                  </div>
+                  <div class="city-actions">
+                    ${!city.legacy && html`<button class="icon-btn" title="تعديل المدينة" onClick=${() => setCityEdit(city)}>✏️</button>`}
+                    ${!city.legacy && html`<button class="icon-x" title="حذف المدينة" onClick=${() => deleteCity(city)}>✕</button>`}
+                  </div>
+                </div>
+                ${city.note && html`<p class="city-note">${city.note}</p>`}
+                ${places.length > 0 && html`<${Progress} done=${done} total=${places.length} tone="rose" />`}
+                <div class="travel-place-list">
+                  ${places.map(place => {
+                    const meta = PLACE_TYPES[place.type] || PLACE_TYPES.other
+                    const links = travelLinksOf(place.links)
+                    return html`
+                      <div class=${'travel-place-row' + (place.visited ? ' done' : '')} key=${place.id}>
+                        <button class=${'check' + (place.visited ? ' on' : '')} title=${place.visited ? 'إلغاء الزيارة' : 'تمت الزيارة'}
+                          onClick=${() => { buzz(); updateCity(city.id, { places: places.map(item => item.id === place.id ? { ...item, visited: !item.visited } : item) }) }}>
+                          ${place.visited ? '✓' : ''}
+                        </button>
+                        <button class="travel-place-main" onClick=${() => setPlaceModal({ cityId: city.id, city, place })}>
+                          <span class="travel-place-title"><b>${meta.icon} ${place.name}</b><span class="travel-type-pill">${meta.label}</span></span>
+                          ${(place.notes || place.note) && html`<span class="travel-place-note">${place.notes || place.note}</span>`}
+                          ${links.length > 0 && html`<span class="travel-inline-links">${links.map(link => html`<a key=${link.id} class="travel-inline-link" href=${link.url} target="_blank" rel="noopener noreferrer" onClick=${e => e.stopPropagation()}>${travelLinkMeta(link.url).icon} ${link.label}</a>`)}</span>`}
+                        </button>
+                        <button class="icon-btn" title="تعديل" onClick=${() => setPlaceModal({ cityId: city.id, city, place })}>✏️</button>
+                        <button class="icon-x" title="حذف" onClick=${() => deletePlace(city.id, place.id)}>✕</button>
+                      </div>
+                    `
+                  })}
+                </div>
+                <button class="add-dashed" onClick=${() => setPlaceModal({ cityId: city.id, city, place: null })}>+ إضافة مكان أو شيء</button>
+              </section>
+            `
+          })}
+        `}
+
+      <section class="travel-notes-card">
+        <div class="travel-section-heading"><div><h3>ملاحظات الرحلة 📝</h3><p>أفكار عامة لا تخص مكاناً واحداً</p></div></div>
+        <textarea class="notes-area" rows="5" dir="rtl" placeholder="الميزانية، المواصلات، أوقات السفر، الأشياء اللي ما تبغون تنسونها..."
+          value=${notes} onInput=${e => setNotes(e.target.value)} onBlur=${() => onUpdate({ tripNotes: notes })}></textarea>
+      </section>
+
+      <section class="travel-links-card">
+        <div class="travel-section-heading"><div><h3>روابط الرحلة 🔗</h3><p>جداول، حجوزات، خرائط، TikTok أو أي مصدر</p></div><span class="badge badge-gray">${destinationLinks.length}</span></div>
+        ${destinationLinks.length > 0
+          ? html`<div class="travel-links-list">${destinationLinks.map(link => html`<${TravelLink} key=${link.id} link=${link} onDelete=${() => deleteDestinationLink(link.id)} />`)}</div>`
+          : html`<p class="travel-links-empty">أضيفوا رابط جدول الرحلة أو أي رابط يفيدكم.</p>`}
+        <button class="add-dashed" onClick=${() => setLinkModal(true)}>+ إضافة رابط للرحلة</button>
+      </section>
 
       <button class="link-danger" onClick=${() => ask({
-        title: `حذف «${dest.country}»؟`, text: 'بتنحذف الأماكن والملاحظات معها.', ok: 'حذف', danger: true,
+        title: `حذف «${dest.country}»؟`, text: 'بتنحذف المدن والأماكن والملاحظات والروابط معها.', ok: 'حذف', danger: true,
         onOk: () => { onBack(); onDelete() },
       })}>🗑️ حذف الوجهة</button>
 
-      ${open && html`
-        <${Modal} title="إضافة مكان 📍" onClose=${() => setOpen(false)}>
-          <input class="field" dir="rtl" autoFocus placeholder="اسم المكان..."
-            value=${pName} onInput=${e => setPName(e.target.value)}
-            style=${{ marginBottom: '12px' }} />
-          <input class="field gray" dir="rtl" placeholder="ملاحظات (اختياري)..."
-            value=${pNote} onInput=${e => setPNote(e.target.value)}
-            onKeyDown=${e => e.key === 'Enter' && addPlace()}
-            style=${{ marginBottom: '16px' }} />
-          <div class="btn-row" style=${{ marginTop: 0 }}>
-            <button class="btn btn-primary" disabled=${!norm(pName)} onClick=${addPlace}>إضافة</button>
-            <button class="btn btn-ghost" onClick=${() => setOpen(false)}>إلغاء</button>
-          </div>
-        <//>
-      `}
-
+      ${cityModal && html`<${CityEditor} onClose=${() => setCityModal(false)} onSave=${addCity} />`}
+      ${cityEdit && html`<${CityEditor} city=${cityEdit} onClose=${() => setCityEdit(null)} onSave=${saveCityEdit} />`}
+      ${placeModal && html`<${PlaceEditor} city=${placeModal.city} place=${placeModal.place} onClose=${() => setPlaceModal(null)}
+        onSave=${place => savePlace(placeModal.cityId, place)} onDelete=${placeModal.place ? () => deletePlace(placeModal.cityId, placeModal.place.id) : null} />`}
+      ${linkModal && html`<${LinkEditor} onClose=${() => setLinkModal(false)} onSave=${addDestinationLink} />`}
       ${rename && html`
         <${Modal} title="تعديل الوجهة ✏️" onClose=${() => setRename(false)}>
           <div class="row-gap">
@@ -2247,8 +2591,7 @@ function CountryDetail({ dest, onBack, onUpdate, onDelete }) {
               onInput=${e => { setName(e.target.value); if (FLAGS[norm(e.target.value)]) setFlag(FLAGS[norm(e.target.value)]) }} />
           </div>
           <div class="btn-row">
-            <button class="btn btn-primary" disabled=${!norm(name)}
-              onClick=${() => { onUpdate({ country: norm(name), flag }); setRename(false) }}>حفظ</button>
+            <button class="btn btn-primary" disabled=${!norm(name)} onClick=${saveDestination}>حفظ</button>
             <button class="btn btn-ghost" onClick=${() => setRename(false)}>إلغاء</button>
           </div>
         <//>
@@ -2270,22 +2613,18 @@ function Travel({ col, tab }) {
 
   const submit = () => {
     if (!norm(country)) return
-    add({ country: norm(country), flag: FLAGS[norm(country)] || flag, status, places: [], notes: '' })
+    add({ country: norm(country), flag: FLAGS[norm(country)] || flag, status, cities: [], places: [], notes: '', tripNotes: '', links: [] })
     setCountry(''); setFlag('🌍'); setStatus('planned'); setOpen(false)
     buzz()
   }
-  const onCountry = (val) => {
-    setCountry(val)
-    if (FLAGS[norm(val)]) setFlag(FLAGS[norm(val)])
+  const onCountry = (value) => {
+    setCountry(value)
+    if (FLAGS[norm(value)]) setFlag(FLAGS[norm(value)])
   }
 
   if (selected) {
-    return html`<${CountryDetail}
-      dest=${selected}
-      onBack=${() => setSelId(null)}
-      onUpdate=${(patch) => update(selected.id, patch)}
-      onDelete=${() => remove(selected.id)}
-    />`
+    return html`<${CountryDetail} dest=${selected} onBack=${() => setSelId(null)}
+      onUpdate=${patch => update(selected.id, patch)} onDelete=${() => remove(selected.id)} />`
   }
 
   const shown = filter === 'all' ? items : items.filter(d => (d.status || 'planned') === filter)
@@ -2293,61 +2632,51 @@ function Travel({ col, tab }) {
   return html`
     <div class="page">
       <div class="page-head">
-        <h2>${tab.title || tab.label}</h2>
+        <div><h2>${tab.title || tab.label}</h2><p class="travel-intro">اختاروا وجهة، ثم رتّبوا مدنكم وأماكنكم وروابطكم.</p></div>
         <span class="badge badge-rose">${items.length} وجهة</span>
       </div>
 
       ${items.length > 1 && html`
         <div class="chips">
-          <button class=${'chip' + (filter === 'all' ? ' active rose' : '')} onClick=${() => setFilter('all')}>الكل</button>
-          ${Object.entries(STATUS).map(([k, v]) => html`
-            <button key=${k} class=${'chip' + (filter === k ? ' active rose' : '')} onClick=${() => setFilter(k)}>${v.label}</button>
-          `)}
+          <button class=${'chip' + (filter === 'all' ? ' active' : '')} onClick=${() => setFilter('all')}>الكل</button>
+          ${Object.entries(STATUS).map(([key, meta]) => html`<button key=${key} class=${'chip' + (filter === key ? ' active' : '')} onClick=${() => setFilter(key)}>${meta.label}</button>`)}
         </div>
       `}
 
       ${shown.length === 0
-        ? html`<${Empty} emo="🗺️" text=${items.length ? 'ما فيه وجهات بهالحالة' : 'أضف أول وجهة سفر'}
-            action=${items.length ? null : '+ وجهة جديدة'} onAction=${() => setOpen(true)} />`
-        : html`
-          <div class="grid">
-            ${shown.map(d => {
-              const st = STATUS[d.status] || STATUS.planned
-              const places = d.places || []
-              const visited = places.filter(p => p.visited).length
-              return html`
-                <div class="dest" key=${d.id} onClick=${() => setSelId(d.id)}>
-                  <button class="icon-x del" onClick=${e => { e.stopPropagation(); remove(d.id) }}>✕</button>
-                  <div class="flag">${d.flag}</div>
-                  <div class="name">${d.country}</div>
-                  <span class=${'status-pill ' + st.cls}>${st.label}</span>
-                  ${places.length > 0 && html`<p class="meta">${visited}/${places.length} مكان</p>`}
-                </div>
-              `
-            })}
-          </div>
-        `}
+        ? html`<${Empty} emo="🗺️" text=${items.length ? 'ما فيه وجهات بهالحالة' : 'أضفوا أول وجهة سفر'} action=${items.length ? null : '+ وجهة جديدة'} onAction=${() => setOpen(true)} />`
+        : html`<div class="grid">${shown.map(dest => {
+          const cities = travelCitiesOf(dest)
+          const places = cities.flatMap(city => travelPlacesOf(city))
+          const done = places.filter(place => place.visited).length
+          const st = STATUS[dest.status] || STATUS.planned
+          return html`
+            <div class="dest" key=${dest.id} onClick=${() => setSelId(dest.id)}>
+              <button class="icon-x del" title="حذف الوجهة" onClick=${e => { e.stopPropagation(); remove(dest.id) }}>✕</button>
+              <div class="flag">${dest.flag || '🌍'}</div>
+              <div class="name">${dest.country}</div>
+              <span class=${'status-pill ' + st.cls}>${st.label}</span>
+              <p class="meta">${cities.filter(city => !city.legacy).length} مدن · ${done}/${places.length} أماكن تمت</p>
+              <button class="dest-open" onClick=${e => { e.stopPropagation(); setSelId(dest.id) }}>فتح الخطة ←</button>
+            </div>
+          `
+        })}</div>`}
 
-      <button class="fab fab-rose" onClick=${() => setOpen(true)}>+</button>
+      <button class="fab fab-rose" title="إضافة وجهة" onClick=${() => setOpen(true)}>+</button>
 
       ${open && html`
-        <${Modal} title="وجهة جديدة 🌍" onClose=${() => setOpen(false)}>
+        <${Modal} title="وجهة جديدة 🌍" sub="بعدها أضف المدن والأماكن من داخلها" onClose=${() => setOpen(false)}>
           <div class="row-gap" style=${{ marginBottom: '16px' }}>
             <input class="flag-input" value=${flag} onInput=${e => setFlag(e.target.value)} />
-            <input class="field" dir="rtl" autoFocus placeholder="اسم البلد أو المدينة..."
-              value=${country} onInput=${e => onCountry(e.target.value)}
-              onKeyDown=${e => e.key === 'Enter' && submit()} />
+            <input class="field" dir="rtl" autoFocus placeholder="اسم البلد أو الوجهة..."
+              value=${country} onInput=${e => onCountry(e.target.value)} onKeyDown=${e => e.key === 'Enter' && submit()} />
           </div>
           <p class="hint" style=${{ marginBottom: '12px' }}>العلم يتحدد تلقائياً للدول العربية والمعروفة 🏳️</p>
           <div class="status-pick" style=${{ marginBottom: '20px' }}>
-            ${Object.entries(STATUS).map(([k, v]) => html`
-              <button key=${k} class=${(status === k ? v.cls + ' active' : '')} onClick=${() => setStatus(k)}>
-                ${v.label}
-              </button>
-            `)}
+            ${Object.entries(STATUS).map(([key, meta]) => html`<button key=${key} class=${status === key ? meta.cls + ' active' : ''} onClick=${() => setStatus(key)}>${meta.label}</button>`)}
           </div>
           <div class="btn-row" style=${{ marginTop: 0 }}>
-            <button class="btn btn-primary" disabled=${!norm(country)} onClick=${submit}>إضافة</button>
+            <button class="btn btn-primary" disabled=${!norm(country)} onClick=${submit}>إضافة الوجهة</button>
             <button class="btn btn-ghost" onClick=${() => setOpen(false)}>إلغاء</button>
           </div>
         <//>
