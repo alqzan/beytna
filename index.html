@@ -3221,6 +3221,14 @@ function App() {
     return html`<div class="setup"><div class="setup-card">
       <div class="logo">⚠️</div><h1 style=${{ fontSize: '22px' }}>تعذّر الاتصال</h1>
       <p class="sub">تأكد من الإنترنت وأعد فتح الصفحة</p>
+      <div class="btn-row" style=${{ marginTop: '18px' }}>
+        <button class="btn btn-primary" onClick=${() => window.location.reload()}>↻ إعادة المحاولة</button>
+        <button class="btn btn-ghost" onClick=${() => {
+          try { localStorage.removeItem(FAMILY_ID_KEY) } catch {}
+          window.location.reload()
+        }}>🚪 خروج من البيت</button>
+      </div>
+      <p class="hint">الخروج يمسح اختيار البيت من هذا الجهاز فقط — البيانات لا تنحذف.</p>
     </div></div>`
   }
   if (!isReady) {
