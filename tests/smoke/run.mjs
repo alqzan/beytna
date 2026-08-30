@@ -121,7 +121,7 @@ try {
   await pageA.locator('.dashboard-action').filter({ hasText: 'تصويت' }).click()
   await pageA.click('button:has-text("+ تصويت جديد")')
   await pageA.fill('input[placeholder="مثلاً: وين نتعشى؟"]', 'اختيار المطعم')
-  await pageA.fill('textarea[placeholder="مطعم 1\nمطعم 2\nنطبخ بالبيت"]', 'مطعم أ\nمطعم ب')
+  await pageA.locator('.overlay').last().locator('textarea').fill('مطعم أ\nمطعم ب')
   await pageA.locator('.overlay').last().locator('button.btn-primary').click()
   await pageA.locator('.overlay').last().locator('.sheet-x').click()
   await pageA.locator('.dashboard-action').filter({ hasText: 'قالب' }).click()
