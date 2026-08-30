@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   randomHex, diffShoppingUpdates,
-  buildBackup, parseBackup, planImport, BACKUP_SCHEMA_VERSION,
+  buildBackup, parseBackup, planImport, sha256Hex, BACKUP_SCHEMA_VERSION,
 } from '../../lib/core.mjs'
 
 describe('randomHex', () => {
@@ -91,6 +91,29 @@ describe('نسخة احتياطية: build/parse/checksum', () => {
 
   it('يرفض JSON غير صالح', async () => {
     await expect(parseBackup('{ not valid json')).rejects.toThrow(/JSON/)
+  })
+
+  it('يحوّل النسخة الخام القديمة إلى نسخة استيراد تلقائياً', async () => {
+    const raw = {
+      rules: [{ id: 'r-old', text: 'قديم' }], travel: [], packing: [],
+      shopping: [{ id: 's-old', name: 'أرز', category: 'food', completed: false }],
+      prefs: { cats: [{ id: 'custom', label: 'مخصص', icon: '⭐' }] },
+    }
+    const parsed = await parseBackup(JSON.stringify({
+      schemaVersion: 'legacy-raw-1', familyId: 'beytna', exportedAt: new Date().toISOString(),
+      raw, checksum: await sha256Hex(JSON.stringify(raw)),
+    }))
+    expect(parsed.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.data.sections.rules[0].text).toBe('قديم')
+    expect(parsed.data.shopping[0].name).toBe('أرز')
+    expect(parsed.data.prefs.cats[0].label).toBe('مخصص')
+  })
+
+  it('يرفض النسخة الخام إذا تغيّر checksum', async () => {
+    const raw = { rules: [], travel: [], packing: [], shopping: [], prefs: {} }
+    await expect(parseBackup(JSON.stringify({
+      schemaVersion: 'legacy-raw-1', raw, checksum: '0'.repeat(64),
+    }))).rejects.toThrow(/checksum/)
   })
 })
 
