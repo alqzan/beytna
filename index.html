@@ -2501,6 +2501,7 @@ const WORLD_MAP_DATA_URLS = [
   'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
   'https://unpkg.com/world-atlas@2/countries-110m.json'
 ]
+const WORLD_MAP_PROJECTION_URL = 'https://cdn.jsdelivr.net/npm/d3-geo@3/+esm'
 
 // تحويل TopoJSON الخفيف إلى مسارات SVG مباشرة، بدون مكتبة إضافية أو حزمة بناء.
 const topoArc = (topology, reference) => {
@@ -2524,20 +2525,22 @@ const topoRing = (topology, references) => references.reduce((points, reference)
   return points.concat(points.length ? arc.slice(1) : arc)
 }, [])
 
-const svgRingPath = (ring) => ring.length
-  ? `M${ring.map(([lon, lat]) => `${((lon + 180) / 360) * 1000},${((90 - lat) / 180) * 520}`).join('L')}Z`
-  : ''
-
-const topoGeometryPath = (topology, geometry) => {
+const topoGeometry = (topology, geometry) => {
   if (!geometry?.arcs) return ''
-  if (geometry.type === 'Polygon') return geometry.arcs.map(ring => svgRingPath(topoRing(topology, ring))).join(' ')
-  if (geometry.type === 'MultiPolygon') return geometry.arcs.flatMap(polygon => polygon.map(ring => svgRingPath(topoRing(topology, ring)))).join(' ')
-  return ''
+  if (geometry.type === 'Polygon') return { type: 'Polygon', coordinates: geometry.arcs.map(ring => topoRing(topology, ring)) }
+  if (geometry.type === 'MultiPolygon') return { type: 'MultiPolygon', coordinates: geometry.arcs.map(polygon => polygon.map(ring => topoRing(topology, ring))) }
+  return null
 }
 
-const topoCountryPaths = (topology) => {
+const topoFeatureCollection = (topology) => {
   const geometries = topology?.objects?.countries?.geometries || []
-  return geometries.map((geometry, index) => ({ id: geometry.id || index, d: topoGeometryPath(topology, geometry) })).filter(item => item.d)
+  return {
+    type: 'FeatureCollection',
+    features: geometries.map((geometry, index) => ({
+      type: 'Feature', id: geometry.id || index, properties: geometry.properties || {},
+      geometry: topoGeometry(topology, geometry),
+    })).filter(feature => feature.geometry),
+  }
 }
 
 const worldDestinationStats = (dest) => {
@@ -2554,7 +2557,7 @@ const worldDestinationStats = (dest) => {
 
 function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   const [filter, setFilter] = useState('all')
-  const [mapData, setMapData] = useState(null)
+  const [mapData, setMapData] = useState({ paths: [], projection: null })
   const [mapState, setMapState] = useState('loading')
   useEffect(() => {
     let cancelled = false
@@ -2562,11 +2565,18 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
       let lastError = null
       for (const url of WORLD_MAP_DATA_URLS) {
         try {
-          const response = await fetch(url, { cache: 'force-cache' })
+          const [response, geo] = await Promise.all([
+            fetch(url, { cache: 'force-cache' }),
+            import(WORLD_MAP_PROJECTION_URL),
+          ])
           if (!response.ok) throw new Error(`world map ${response.status}`)
           const topology = await response.json()
           if (!topology?.arcs || !topology?.objects?.countries) throw new Error('invalid world map data')
-          if (!cancelled) { setMapData(topology); setMapState('ready') }
+          const features = topoFeatureCollection(topology)
+          const projection = geo.geoEquirectangular().fitExtent([[6, 6], [994, 514]], features)
+          const path = geo.geoPath(projection)
+          const paths = features.features.map(feature => ({ id: feature.id, d: path(feature) })).filter(item => item.d)
+          if (!cancelled) { setMapData({ paths, projection }); setMapState('ready') }
           return
         } catch (error) {
           lastError = error
@@ -2577,11 +2587,20 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
     load()
     return () => { cancelled = true }
   }, [])
-  const mapPaths = useMemo(() => topoCountryPaths(mapData), [mapData])
+  const mapPaths = mapData.paths
   const statusCounts = Object.fromEntries(Object.keys(STATUS).map(key => [key, items.filter(item => (item.status || 'planned') === key).length]))
   const shown = filter === 'all' ? items : items.filter(item => (item.status || 'planned') === filter)
-  const mapped = shown.filter(item => worldMapPoint(item.country))
-  const unmapped = shown.filter(item => !worldMapPoint(item.country))
+  const mapPoint = country => {
+    const raw = WORLD_COUNTRY_POINTS[norm(country)]
+    if (!raw) return null
+    if (mapData.projection) {
+      const [x, y] = mapData.projection([raw.lon, raw.lat])
+      return { x, y }
+    }
+    return worldMapPoint(country)
+  }
+  const mapped = shown.filter(item => mapPoint(item.country))
+  const unmapped = shown.filter(item => !mapPoint(item.country))
   const stats = shown.reduce((acc, item) => {
     const next = worldDestinationStats(item)
     acc.cities += next.cities
@@ -2609,8 +2628,8 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
           ${mapPaths.map(path => html`<path class="world-map-country" key=${path.id} d=${path.d} />`)}
           ${mapState !== 'ready' && html`<text class="world-map-message" x="500" y="260" textAnchor="middle">${mapState === 'loading' ? 'جاري تحميل خريطة العالم…' : 'تعذر تحميل الخريطة — التفاصيل محفوظة أسفلها'}</text>`}
           ${mapped.map((dest, index) => {
-            const base = worldMapPoint(dest.country)
-            const same = mapped.slice(0, index).filter(item => worldMapPoint(item.country)?.x === base.x && worldMapPoint(item.country)?.y === base.y).length
+            const base = mapPoint(dest.country)
+            const same = mapped.slice(0, index).filter(item => mapPoint(item.country)?.x === base.x && mapPoint(item.country)?.y === base.y).length
             const point = { x: base.x + ((same % 3) - 1) * 11, y: base.y + Math.floor(same / 3) * 12 }
             const status = dest.status || 'planned'
             const meta = STATUS[status] || STATUS.planned
@@ -2643,7 +2662,7 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
                 <span class=${'status-pill ' + meta.cls}>${meta.label}</span>
               </button>
               <div class="world-country-details">
-                <div class="world-country-meta"><span>✅ ${summary.visited}/${summary.places} أماكن تمت</span><span>${worldMapPoint(dest.country) ? '📍 على الخريطة' : '🌍 موقع الخريطة يحتاج تحديداً'}</span></div>
+                <div class="world-country-meta"><span>✅ ${summary.visited}/${summary.places} أماكن تمت</span><span>${mapPoint(dest.country) ? '📍 على الخريطة' : '🌍 موقع الخريطة يحتاج تحديداً'}</span></div>
                 ${note && html`<p class="world-country-note">📝 ${note}</p>`}
                 <div class="world-country-statuses">
                   ${Object.entries(STATUS).map(([key, statusMeta]) => html`<button key=${key} class=${'world-status-btn ' + (dest.status === key ? statusMeta.cls + ' active' : '')} onClick=${e => { e.stopPropagation(); onStatus(dest.id, key) }}>${statusMeta.label}</button>`)}
