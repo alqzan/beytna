@@ -901,8 +901,10 @@ textarea.field { resize: none; line-height: 1.7; }
 .world-map-dot.planned { background: var(--blue-text); }
 .world-map-dot.soon { background: var(--amber); }
 .world-map-dot.visited { background: var(--green); }
-.world-map-frame { overflow: hidden; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--line-2); margin-bottom: 12px; background: var(--map-ocean); }
-.world-map-svg { display: block; width: 100%; height: auto; min-height: 210px; }
+.world-map-frame { overflow: hidden; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--line-2); margin-bottom: 12px; background: var(--map-ocean); touch-action: none; user-select: none; }
+.world-map-svg { display: block; width: 100%; height: auto; min-height: 210px; cursor: grab; touch-action: none; user-select: none; }
+.world-map-svg.is-dragging { cursor: grabbing; }
+.world-map-gesture-hint { color: var(--ink-faint); font-size: 10px; line-height: 1.6; margin: 0 0 8px; text-align: center; }
 .world-map-ocean { fill: var(--map-ocean); }
 .world-map-grid { fill: none; stroke: var(--map-grid); stroke-width: 1; stroke-dasharray: 4 8; opacity: .55; }
 .world-map-country { fill: var(--map-land); stroke: var(--map-grid); stroke-width: .7; stroke-linejoin: round; opacity: .94; }
@@ -2561,6 +2563,22 @@ const topoFeatureCollection = (topology) => {
   }
 }
 
+const WORLD_MAP_WIDTH = 1000
+const WORLD_MAP_HEIGHT = 520
+const WORLD_MAP_MIN_ZOOM = 1
+const WORLD_MAP_MAX_ZOOM = 4
+const WORLD_MAP_FULL_VIEW = { x: 0, y: 0, width: WORLD_MAP_WIDTH, height: WORLD_MAP_HEIGHT }
+
+const clampWorldMapView = (view) => {
+  const width = Math.max(WORLD_MAP_WIDTH / WORLD_MAP_MAX_ZOOM, Math.min(WORLD_MAP_WIDTH, view.width))
+  const height = Math.max(WORLD_MAP_HEIGHT / WORLD_MAP_MAX_ZOOM, Math.min(WORLD_MAP_HEIGHT, view.height))
+  return {
+    width, height,
+    x: Math.min(Math.max(view.x, 0), WORLD_MAP_WIDTH - width),
+    y: Math.min(Math.max(view.y, 0), WORLD_MAP_HEIGHT - height),
+  }
+}
+
 const worldDestinationStats = (dest) => {
   const cities = travelCitiesOf(dest)
   const places = cities.flatMap(city => travelPlacesOf(city))
@@ -2578,7 +2596,11 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   const [mapData, setMapData] = useState({ paths: [], projection: null })
   const [mapState, setMapState] = useState('loading')
   const [expanded, setExpanded] = useState(false)
-  const [mapZoom, setMapZoom] = useState(1)
+  const [mapView, setMapView] = useState(WORLD_MAP_FULL_VIEW)
+  const [mapDragging, setMapDragging] = useState(false)
+  const mapViewRef = useRef(WORLD_MAP_FULL_VIEW)
+  const gestureRef = useRef({ pointers: new Map(), mode: null, startView: WORLD_MAP_FULL_VIEW, startPoint: null, startDistance: 0, startAnchor: null, moved: false })
+  const suppressMarkerClickRef = useRef(false)
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -2621,10 +2643,114 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   }
   const mapped = shown.filter(item => mapPoint(item.country))
   const unmapped = shown.filter(item => !mapPoint(item.country))
-  const zoom = Math.max(1, Math.min(3, mapZoom))
-  const viewWidth = 1000 / zoom
-  const viewHeight = 520 / zoom
-  const mapViewBox = `${(1000 - viewWidth) / 2} ${(520 - viewHeight) / 2} ${viewWidth} ${viewHeight}`
+  const zoom = Math.max(WORLD_MAP_MIN_ZOOM, Math.min(WORLD_MAP_MAX_ZOOM, WORLD_MAP_WIDTH / mapView.width))
+  const mapViewBox = `${mapView.x} ${mapView.y} ${mapView.width} ${mapView.height}`
+  const updateMapView = next => {
+    setMapView(current => {
+      const resolved = clampWorldMapView(typeof next === 'function' ? next(current) : next)
+      mapViewRef.current = resolved
+      return resolved
+    })
+  }
+  const mapScreenPoint = (element, clientX, clientY, view = mapViewRef.current) => {
+    const rect = element.getBoundingClientRect()
+    const xRatio = rect.width ? (clientX - rect.left) / rect.width : .5
+    const yRatio = rect.height ? (clientY - rect.top) / rect.height : .5
+    return { x: view.x + xRatio * view.width, y: view.y + yRatio * view.height }
+  }
+  const setZoomAround = (nextZoom, focus) => {
+    const current = mapViewRef.current
+    const safeZoom = Math.max(WORLD_MAP_MIN_ZOOM, Math.min(WORLD_MAP_MAX_ZOOM, nextZoom))
+    const width = WORLD_MAP_WIDTH / safeZoom
+    const height = WORLD_MAP_HEIGHT / safeZoom
+    const anchor = focus || { x: current.x + current.width / 2, y: current.y + current.height / 2 }
+    const xRatio = current.width ? (anchor.x - current.x) / current.width : .5
+    const yRatio = current.height ? (anchor.y - current.y) / current.height : .5
+    updateMapView({ width, height, x: anchor.x - xRatio * width, y: anchor.y - yRatio * height })
+  }
+  const adjustZoom = delta => setZoomAround(zoom + delta)
+  const resetMapView = () => updateMapView(WORLD_MAP_FULL_VIEW)
+  const pointerDistance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y)
+  const pointerCenter = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
+  const onMapPointerDown = event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    const gesture = gestureRef.current
+    const svg = event.currentTarget
+    if (gesture.pointers.size === 0) suppressMarkerClickRef.current = false
+    gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    svg.setPointerCapture?.(event.pointerId)
+    if (gesture.pointers.size === 1) {
+      gesture.mode = 'pan'
+      gesture.startView = mapViewRef.current
+      gesture.startPoint = { x: event.clientX, y: event.clientY }
+      gesture.moved = false
+      setMapDragging(true)
+    } else if (gesture.pointers.size >= 2) {
+      const [first, second] = [...gesture.pointers.values()]
+      const center = pointerCenter(first, second)
+      gesture.mode = 'pinch'
+      gesture.startView = mapViewRef.current
+      gesture.startDistance = Math.max(pointerDistance(first, second), 1)
+      gesture.startAnchor = mapScreenPoint(svg, center.x, center.y, gesture.startView)
+      gesture.startPoint = null
+      gesture.moved = true
+      suppressMarkerClickRef.current = true
+    }
+  }
+  const onMapPointerMove = event => {
+    const gesture = gestureRef.current
+    const point = gesture.pointers.get(event.pointerId)
+    if (!point) return
+    point.x = event.clientX
+    point.y = event.clientY
+    const svg = event.currentTarget
+    if (gesture.mode === 'pinch' && gesture.pointers.size >= 2) {
+      const [first, second] = [...gesture.pointers.values()]
+      const center = pointerCenter(first, second)
+      const nextZoom = (WORLD_MAP_WIDTH / gesture.startView.width) * (pointerDistance(first, second) / gesture.startDistance)
+      const safeZoom = Math.max(WORLD_MAP_MIN_ZOOM, Math.min(WORLD_MAP_MAX_ZOOM, nextZoom))
+      const width = WORLD_MAP_WIDTH / safeZoom
+      const height = WORLD_MAP_HEIGHT / safeZoom
+      const rect = svg.getBoundingClientRect()
+      const xRatio = rect.width ? (center.x - rect.left) / rect.width : .5
+      const yRatio = rect.height ? (center.y - rect.top) / rect.height : .5
+      updateMapView({ width, height, x: gesture.startAnchor.x - xRatio * width, y: gesture.startAnchor.y - yRatio * height })
+      event.preventDefault()
+      return
+    }
+    if (gesture.mode !== 'pan' || gesture.pointers.size !== 1 || !gesture.startPoint) return
+    const rect = svg.getBoundingClientRect()
+    const dx = rect.width ? (event.clientX - gesture.startPoint.x) * gesture.startView.width / rect.width : 0
+    const dy = rect.height ? (event.clientY - gesture.startPoint.y) * gesture.startView.height / rect.height : 0
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      gesture.moved = true
+      suppressMarkerClickRef.current = true
+    }
+    updateMapView({ ...gesture.startView, x: gesture.startView.x - dx, y: gesture.startView.y - dy })
+    event.preventDefault()
+  }
+  const onMapPointerEnd = event => {
+    const gesture = gestureRef.current
+    gesture.pointers.delete(event.pointerId)
+    try { event.currentTarget.releasePointerCapture?.(event.pointerId) } catch {}
+    if (gesture.pointers.size === 0) {
+      gesture.mode = null
+      gesture.startPoint = null
+      setMapDragging(false)
+    } else if (gesture.pointers.size === 1) {
+      const [remaining] = [...gesture.pointers.values()]
+      gesture.mode = 'pan'
+      gesture.startView = mapViewRef.current
+      gesture.startPoint = { x: remaining.x, y: remaining.y }
+    }
+  }
+  const onMapWheel = event => {
+    event.preventDefault()
+    const current = mapViewRef.current
+    const focus = mapScreenPoint(event.currentTarget, event.clientX, event.clientY, current)
+    const direction = event.deltaY < 0 ? 1.18 : 1 / 1.18
+    setZoomAround((WORLD_MAP_WIDTH / current.width) * direction, focus)
+  }
   const stats = shown.reduce((acc, item) => {
     const next = worldDestinationStats(item)
     acc.cities += next.cities
@@ -2646,18 +2772,19 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
       </div>
 
       <div class="world-map-toolbar">
-        <div class="world-map-toolbar-copy"><b>${expanded ? 'الخريطة بحجم الشاشة' : 'الخريطة التفاعلية'}</b><small>كبّرها أو صغّرها حسب حاجتك</small></div>
+        <div class="world-map-toolbar-copy"><b>${expanded ? 'الخريطة بحجم الشاشة' : 'الخريطة التفاعلية'}</b><small>اسحبها وحركها، أو استخدم إصبعين للتكبير</small></div>
         <button class="world-map-expand" aria-pressed=${expanded} title=${expanded ? 'تصغير الخريطة' : 'تكبير الخريطة'} onClick=${() => setExpanded(value => !value)}>${expanded ? '↙ تصغير' : '⛶ تكبير الخريطة'}</button>
       </div>
       <div class="world-map-controls" aria-label="أدوات تكبير الخريطة">
-        <button class="world-map-zoom-btn" title="تكبير الخريطة" aria-label="تكبير الخريطة" disabled=${zoom >= 3} onClick=${() => setMapZoom(value => Math.min(3, Number((value + .5).toFixed(1))))}>＋</button>
+        <button class="world-map-zoom-btn" title="تكبير الخريطة" aria-label="تكبير الخريطة" disabled=${zoom >= WORLD_MAP_MAX_ZOOM} onClick=${() => adjustZoom(.5)}>＋</button>
         <span class="world-map-zoom-label">${Math.round(zoom * 100)}%</span>
-        <button class="world-map-zoom-btn" title="تصغير الخريطة" aria-label="تصغير الخريطة" disabled=${zoom <= 1} onClick=${() => setMapZoom(value => Math.max(1, Number((value - .5).toFixed(1))))}>−</button>
-        <button class="world-map-zoom-reset" title="إظهار الخريطة كاملة" disabled=${zoom === 1} onClick=${() => setMapZoom(1)}>إظهار الكل</button>
+        <button class="world-map-zoom-btn" title="تصغير الخريطة" aria-label="تصغير الخريطة" disabled=${zoom <= WORLD_MAP_MIN_ZOOM} onClick=${() => adjustZoom(-.5)}>−</button>
+        <button class="world-map-zoom-reset" title="إظهار الخريطة كاملة" disabled=${zoom === WORLD_MAP_MIN_ZOOM && mapView.x === 0 && mapView.y === 0} onClick=${resetMapView}>إظهار الكل</button>
       </div>
+      <p class="world-map-gesture-hint">اسحب الخريطة بإصبع واحد أو بالماوس لتحريكها · بإصبعين للتكبير والتحريك معاً · وبعجلة الماوس على الكمبيوتر</p>
 
       <div class="world-map-frame">
-        <svg class="world-map-svg" viewBox=${mapViewBox} role="img" aria-label="خريطة العالم مع وجهات بيتنا">
+        <svg class=${'world-map-svg' + (mapDragging ? ' is-dragging' : '')} viewBox=${mapViewBox} role="img" aria-label="خريطة العالم التفاعلية — اسحب لتحريكها أو استخدم إصبعين للتكبير" onPointerDown=${onMapPointerDown} onPointerMove=${onMapPointerMove} onPointerUp=${onMapPointerEnd} onPointerCancel=${onMapPointerEnd} onWheel=${onMapWheel}>
           <rect class="world-map-ocean" x="0" y="0" width="1000" height="520" rx="24" />
           <path class="world-map-grid" d="M0 104H1000 M0 208H1000 M0 312H1000 M0 416H1000 M200 0V520 M400 0V520 M600 0V520 M800 0V520" />
           ${mapPaths.map(path => html`<path class="world-map-country" key=${path.id} d=${path.d} />`)}
@@ -2669,7 +2796,7 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
             const status = dest.status || 'planned'
             const meta = STATUS[status] || STATUS.planned
             return html`
-              <g class=${'world-map-marker world-marker-' + status} key=${dest.id} role="button" tabIndex="0" aria-label=${`${dest.country}: ${meta.label}`} onClick=${() => onOpenCountry(dest.id)} onKeyDown=${e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenCountry(dest.id) } }}>
+              <g class=${'world-map-marker world-marker-' + status} key=${dest.id} role="button" tabIndex="0" aria-label=${`${dest.country}: ${meta.label}`} onClick=${e => { if (suppressMarkerClickRef.current) { suppressMarkerClickRef.current = false; return } onOpenCountry(dest.id) }} onKeyDown=${e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenCountry(dest.id) } }}>
                 <title>${dest.country} — ${meta.label}</title>
                 <circle cx=${point.x} cy=${point.y} r="11" />
                 <text x=${point.x} y=${point.y} textAnchor="middle">${dest.flag || '🌍'}</text>
