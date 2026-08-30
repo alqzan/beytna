@@ -83,7 +83,10 @@
           `beytna-legacy-RAW-backup-${stamp}.json`)
 
         // ٢) نسخة بصيغة الاستيراد الجاهزة لواجهة التطبيق (نفس شكل buildBackup في lib/core.mjs)
-        const familyLike = { sections: { rules: raw.rules || [], travel: raw.travel || [], packing: raw.packing || [] } }
+        const familyLike = {
+          sections: { rules: raw.rules || [], travel: raw.travel || [], packing: raw.packing || [] },
+          prefs: raw.prefs || {},
+        }
         const shoppingItems = raw.shopping || []
         const importReady = await buildBackup(familyLike, shoppingItems, 'beytna-legacy')
         download(importReady, `beytna-legacy-IMPORT-READY-${stamp}.json`)

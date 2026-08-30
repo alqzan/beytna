@@ -3053,10 +3053,11 @@ function BackupManager({ onClose }) {
     if (!importPreview) return
     setBusy(true)
     try {
-      const { sectionPatches, shoppingNext } = planImport(
-        store.data.sections, shoppingCol.items, importPreview.parsed.data, importPreview.mode
+      const { sectionPatches, shoppingNext, prefsNext } = planImport(
+        store.data.sections, shoppingCol.items, importPreview.parsed.data, importPreview.mode, store.data.prefs
       )
       for (const [key, arr] of Object.entries(sectionPatches)) store.updateSection(key, arr)
+      if (prefsNext) store.updateMany({ prefs: prefsNext })
       if (shoppingNext) await shoppingCol.replaceAll(shoppingNext)
       notify('✅ تم الاستيراد')
       setImportPreview(null)

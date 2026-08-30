@@ -62,7 +62,10 @@ describe('diffShoppingUpdates — منع استبدال المصفوفة كام�
 })
 
 describe('نسخة احتياطية: build/parse/checksum', () => {
-  const familyData = { sections: { rules: [{ id: 'r1', text: 'قاعدة تجريبية وهمية' }], travel: [], packing: [] } }
+  const familyData = {
+    sections: { rules: [{ id: 'r1', text: 'قاعدة تجريبية وهمية' }], travel: [], packing: [] },
+    prefs: { cats: [{ id: 'custom', label: 'مخصص', icon: '⭐' }] },
+  }
   const shoppingItems = [{ id: 's1', name: 'أرز', category: 'food', completed: false, qty: 3, note: '' }]
 
   it('يبني نسخة صالحة يمكن تحليلها مرة أخرى', async () => {
@@ -71,6 +74,7 @@ describe('نسخة احتياطية: build/parse/checksum', () => {
     expect(backup.checksum).toMatch(/^[0-9a-f]{64}$/)
     const parsed = await parseBackup(JSON.stringify(backup))
     expect(parsed.data.shopping[0].name).toBe('أرز')
+    expect(parsed.data.prefs.cats[0].label).toBe('مخصص')
   })
 
   it('يرفض checksum تالف (تعديل يدوي للملف)', async () => {
@@ -95,13 +99,15 @@ describe('planImport — دمج مقابل استبدال', () => {
   const currentShopping = [{ id: 's1', name: 'موجود', category: 'food', completed: false, qty: 1, note: '' }]
   const backupData = {
     sections: { rules: [{ id: 'old', text: 'من النسخة' }] },
+    prefs: { cats: [{ id: 'custom', label: 'من النسخة', icon: '⭐' }] },
     shopping: [{ id: 'old', name: 'من النسخة', category: 'food', completed: false, qty: 1, note: '' }],
   }
 
   it('الدمج يضيف فوق الحالي دون حذفه', () => {
-    const { sectionPatches, shoppingNext } = planImport(currentSections, currentShopping, backupData, 'merge')
+    const { sectionPatches, shoppingNext, prefsNext } = planImport(currentSections, currentShopping, backupData, 'merge')
     expect(sectionPatches.rules).toHaveLength(2)
     expect(shoppingNext).toHaveLength(2)
+    expect(prefsNext.cats[0].label).toBe('من النسخة')
   })
 
   it('الاستبدال يستخدم محتوى النسخة فقط', () => {
