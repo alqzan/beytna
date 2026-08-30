@@ -907,6 +907,20 @@ textarea.field { resize: none; line-height: 1.7; }
 .world-map-grid { fill: none; stroke: var(--map-grid); stroke-width: 1; stroke-dasharray: 4 8; opacity: .55; }
 .world-map-country { fill: var(--map-land); stroke: var(--map-grid); stroke-width: .7; stroke-linejoin: round; opacity: .94; }
 .world-map-message { fill: var(--ink-faint); font-family: sans-serif; font-size: 18px; }
+.world-map-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 9px; }
+.world-map-toolbar-copy { min-width: 0; text-align: right; }
+.world-map-toolbar-copy b, .world-map-toolbar-copy small { display: block; }
+.world-map-toolbar-copy b { color: var(--ink); font-size: 12px; }
+.world-map-toolbar-copy small { color: var(--ink-faint); font-size: 10px; margin-top: 2px; }
+.world-map-expand { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; padding: 8px 11px; border-radius: 12px; background: var(--rose-light); color: var(--rose-dark); font-size: 11px; font-weight: 700; white-space: nowrap; transition: transform .12s, filter .15s; }
+.world-map-expand:active { transform: scale(.96); }
+.world-map-expand:hover { filter: brightness(.98); }
+.world-map-controls { display: flex; align-items: center; gap: 6px; margin: -2px 0 10px; }
+.world-map-zoom-btn, .world-map-zoom-reset { min-width: 32px; height: 30px; border-radius: 10px; background: var(--surface-2); color: var(--ink-soft); font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; transition: background .15s, transform .12s; }
+.world-map-zoom-btn:active, .world-map-zoom-reset:active { transform: scale(.94); }
+.world-map-zoom-btn:disabled, .world-map-zoom-reset:disabled { opacity: .4; cursor: default; transform: none; }
+.world-map-zoom-reset { padding: 0 10px; font-size: 10px; }
+.world-map-zoom-label { min-width: 42px; color: var(--ink-faint); font-size: 10px; font-weight: 700; text-align: center; direction: ltr; }
 .world-map-marker { cursor: pointer; outline: none; }
 .world-map-marker circle { stroke: var(--card); stroke-width: 3; transition: r .15s, filter .15s; }
 .world-map-marker text { pointer-events: none; font-family: sans-serif; font-size: 15px; dominant-baseline: central; }
@@ -933,6 +947,9 @@ textarea.field { resize: none; line-height: 1.7; }
 .world-status-btn.active { box-shadow: 0 0 0 2px currentColor; }
 .world-unmapped { color: var(--ink-faint); font-size: 10px; text-align: center; line-height: 1.6; margin-top: 10px; }
 .world-map-empty { text-align: center; background: var(--surface-2); border-radius: 14px; padding: 17px 10px; color: var(--ink-faint); font-size: 12px; line-height: 1.7; }
+.overlay.world-map-modal.is-expanded { padding: 0; align-items: stretch; }
+.sheet.world-map-modal.is-expanded { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; padding: max(18px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet.world-map-modal.is-expanded .world-map-frame { border-radius: 24px; }
 .booking-type-grid { grid-template-columns: repeat(3, 1fr); }
 
 .dashboard-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(135deg, var(--rose-light), var(--amber-light)); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
@@ -1746,10 +1763,11 @@ const typeOf = (id) => SECTION_TYPES.find(t => t.id === id) || SECTION_TYPES[0]
 const Ctx = createContext({})
 const useApp = () => useContext(Ctx)
 
-function Modal({ title, sub, onClose, children }) {
+function Modal({ title, sub, onClose, children, className = '' }) {
+  const modalClass = className ? ` ${className}` : ''
   return html`
-    <div class="overlay" onClick=${onClose}>
-      <div class="sheet" onClick=${e => e.stopPropagation()}>
+    <div class=${'overlay' + modalClass} onClick=${onClose}>
+      <div class=${'sheet' + modalClass} onClick=${e => e.stopPropagation()}>
         <div class="sheet-grip"></div>
         <div class="sheet-head">
           <div>
@@ -2559,6 +2577,8 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   const [filter, setFilter] = useState('all')
   const [mapData, setMapData] = useState({ paths: [], projection: null })
   const [mapState, setMapState] = useState('loading')
+  const [expanded, setExpanded] = useState(false)
+  const [mapZoom, setMapZoom] = useState(1)
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -2601,6 +2621,10 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   }
   const mapped = shown.filter(item => mapPoint(item.country))
   const unmapped = shown.filter(item => !mapPoint(item.country))
+  const zoom = Math.max(1, Math.min(3, mapZoom))
+  const viewWidth = 1000 / zoom
+  const viewHeight = 520 / zoom
+  const mapViewBox = `${(1000 - viewWidth) / 2} ${(520 - viewHeight) / 2} ${viewWidth} ${viewHeight}`
   const stats = shown.reduce((acc, item) => {
     const next = worldDestinationStats(item)
     acc.cities += next.cities
@@ -2609,7 +2633,7 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   }, { cities: 0, places: 0 })
 
   return html`
-    <${Modal} title="خريطة العالم 🌍" sub="اللون يوضح حالة كل وجهة — اضغطوا على الوجهة لفتح تفاصيلها وخطتها" onClose=${onClose}>
+    <${Modal} title="خريطة العالم 🌍" sub="اللون يوضح حالة كل وجهة — اضغطوا على الوجهة لفتح تفاصيلها وخطتها" onClose=${onClose} className=${'world-map-modal' + (expanded ? ' is-expanded' : '')}>
       <div class="world-map-kpis">
         <div class="world-map-kpi"><b>${items.length}</b><small>وجهات مسجلة</small></div>
         <div class="world-map-kpi"><b>${statusCounts.visited || 0}</b><small>تمت زيارتها</small></div>
@@ -2621,8 +2645,19 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
         ${Object.entries(STATUS).map(([key, meta]) => html`<span class="world-map-legend-item" key=${key}><i class=${'world-map-dot ' + key}></i>${meta.label}</span>`)}
       </div>
 
+      <div class="world-map-toolbar">
+        <div class="world-map-toolbar-copy"><b>${expanded ? 'الخريطة بحجم الشاشة' : 'الخريطة التفاعلية'}</b><small>كبّرها أو صغّرها حسب حاجتك</small></div>
+        <button class="world-map-expand" aria-pressed=${expanded} title=${expanded ? 'تصغير الخريطة' : 'تكبير الخريطة'} onClick=${() => setExpanded(value => !value)}>${expanded ? '↙ تصغير' : '⛶ تكبير الخريطة'}</button>
+      </div>
+      <div class="world-map-controls" aria-label="أدوات تكبير الخريطة">
+        <button class="world-map-zoom-btn" title="تكبير الخريطة" aria-label="تكبير الخريطة" disabled=${zoom >= 3} onClick=${() => setMapZoom(value => Math.min(3, Number((value + .5).toFixed(1))))}>＋</button>
+        <span class="world-map-zoom-label">${Math.round(zoom * 100)}%</span>
+        <button class="world-map-zoom-btn" title="تصغير الخريطة" aria-label="تصغير الخريطة" disabled=${zoom <= 1} onClick=${() => setMapZoom(value => Math.max(1, Number((value - .5).toFixed(1))))}>−</button>
+        <button class="world-map-zoom-reset" title="إظهار الخريطة كاملة" disabled=${zoom === 1} onClick=${() => setMapZoom(1)}>إظهار الكل</button>
+      </div>
+
       <div class="world-map-frame">
-        <svg class="world-map-svg" viewBox="0 0 1000 520" role="img" aria-label="خريطة العالم مع وجهات بيتنا">
+        <svg class="world-map-svg" viewBox=${mapViewBox} role="img" aria-label="خريطة العالم مع وجهات بيتنا">
           <rect class="world-map-ocean" x="0" y="0" width="1000" height="520" rx="24" />
           <path class="world-map-grid" d="M0 104H1000 M0 208H1000 M0 312H1000 M0 416H1000 M200 0V520 M400 0V520 M600 0V520 M800 0V520" />
           ${mapPaths.map(path => html`<path class="world-map-country" key=${path.id} d=${path.d} />`)}
