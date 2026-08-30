@@ -69,6 +69,7 @@ try {
   await pageA.waitForSelector('.dest-open', { timeout: 10000 })
   await pageA.click('button.world-map-open')
   await pageA.waitForSelector('.world-map-svg', { timeout: 10000 })
+  await pageA.waitForSelector('.world-map-country', { timeout: 15000 })
   if (!(await pageA.locator('.world-country-card').filter({ hasText: 'تركيا' }).count())) fail('world map country status card missing')
   await pageA.locator('.overlay').last().locator('.sheet-x').click()
   await pageA.click('.dest-open')

@@ -905,7 +905,8 @@ textarea.field { resize: none; line-height: 1.7; }
 .world-map-svg { display: block; width: 100%; height: auto; min-height: 210px; }
 .world-map-ocean { fill: var(--map-ocean); }
 .world-map-grid { fill: none; stroke: var(--map-grid); stroke-width: 1; stroke-dasharray: 4 8; opacity: .55; }
-.world-map-land { fill: var(--map-land); stroke: var(--map-grid); stroke-width: 1.4; opacity: .94; }
+.world-map-country { fill: var(--map-land); stroke: var(--map-grid); stroke-width: .7; stroke-linejoin: round; opacity: .94; }
+.world-map-message { fill: var(--ink-faint); font-family: sans-serif; font-size: 18px; }
 .world-map-marker { cursor: pointer; outline: none; }
 .world-map-marker circle { stroke: var(--card); stroke-width: 3; transition: r .15s, filter .15s; }
 .world-map-marker text { pointer-events: none; font-family: sans-serif; font-size: 15px; dominant-baseline: central; }
@@ -2482,13 +2483,61 @@ const WORLD_COUNTRY_POINTS = {
   'قبرص': { lon: 33, lat: 35 }, 'رومانيا': { lon: 25, lat: 46 },
   'المجر': { lon: 19, lat: 47.2 }, 'كرواتيا': { lon: 15.5, lat: 45.2 },
   'صربيا': { lon: 21, lat: 44 }, 'ألبانيا': { lon: 20, lat: 41.2 },
-  'موناكو': { lon: 7.4, lat: 43.7 }, 'إسطنبول': { lon: 29, lat: 41 }
+  'موناكو': { lon: 7.4, lat: 43.7 }, 'إسطنبول': { lon: 29, lat: 41 },
+  'الشمال التركي': { lon: 40, lat: 41.2 }, 'مكة': { lon: 39.8, lat: 21.4 },
+  'مكة المكرمة': { lon: 39.8, lat: 21.4 }, 'المدينة': { lon: 39.6, lat: 24.5 },
+  'المدينة المنورة': { lon: 39.6, lat: 24.5 }, 'الرياض': { lon: 46.7, lat: 24.7 },
+  'جدة': { lon: 39.2, lat: 21.5 }, 'دبي': { lon: 55.3, lat: 25.2 },
+  'أبوظبي': { lon: 54.4, lat: 24.5 }
 }
 
 const worldMapPoint = (country) => {
   const point = WORLD_COUNTRY_POINTS[norm(country)]
   if (!point) return null
   return { x: ((point.lon + 180) / 360) * 1000, y: ((90 - point.lat) / 180) * 520 }
+}
+
+const WORLD_MAP_DATA_URLS = [
+  'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
+  'https://unpkg.com/world-atlas@2/countries-110m.json'
+]
+
+// تحويل TopoJSON الخفيف إلى مسارات SVG مباشرة، بدون مكتبة إضافية أو حزمة بناء.
+const topoArc = (topology, reference) => {
+  const reversed = reference < 0
+  const arc = topology.arcs?.[reversed ? ~reference : reference]
+  if (!Array.isArray(arc)) return []
+  const scale = topology.transform?.scale || [1, 1]
+  const translate = topology.transform?.translate || [0, 0]
+  let x = 0
+  let y = 0
+  const points = arc.map(([dx, dy]) => {
+    x += dx
+    y += dy
+    return [x * scale[0] + translate[0], y * scale[1] + translate[1]]
+  })
+  return reversed ? points.reverse() : points
+}
+
+const topoRing = (topology, references) => references.reduce((points, reference) => {
+  const arc = topoArc(topology, reference)
+  return points.concat(points.length ? arc.slice(1) : arc)
+}, [])
+
+const svgRingPath = (ring) => ring.length
+  ? `M${ring.map(([lon, lat]) => `${((lon + 180) / 360) * 1000},${((90 - lat) / 180) * 520}`).join('L')}Z`
+  : ''
+
+const topoGeometryPath = (topology, geometry) => {
+  if (!geometry?.arcs) return ''
+  if (geometry.type === 'Polygon') return geometry.arcs.map(ring => svgRingPath(topoRing(topology, ring))).join(' ')
+  if (geometry.type === 'MultiPolygon') return geometry.arcs.flatMap(polygon => polygon.map(ring => svgRingPath(topoRing(topology, ring)))).join(' ')
+  return ''
+}
+
+const topoCountryPaths = (topology) => {
+  const geometries = topology?.objects?.countries?.geometries || []
+  return geometries.map((geometry, index) => ({ id: geometry.id || index, d: topoGeometryPath(topology, geometry) })).filter(item => item.d)
 }
 
 const worldDestinationStats = (dest) => {
@@ -2505,6 +2554,30 @@ const worldDestinationStats = (dest) => {
 
 function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   const [filter, setFilter] = useState('all')
+  const [mapData, setMapData] = useState(null)
+  const [mapState, setMapState] = useState('loading')
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      let lastError = null
+      for (const url of WORLD_MAP_DATA_URLS) {
+        try {
+          const response = await fetch(url, { cache: 'force-cache' })
+          if (!response.ok) throw new Error(`world map ${response.status}`)
+          const topology = await response.json()
+          if (!topology?.arcs || !topology?.objects?.countries) throw new Error('invalid world map data')
+          if (!cancelled) { setMapData(topology); setMapState('ready') }
+          return
+        } catch (error) {
+          lastError = error
+        }
+      }
+      if (!cancelled) { console.warn('World map unavailable', lastError); setMapState('error') }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+  const mapPaths = useMemo(() => topoCountryPaths(mapData), [mapData])
   const statusCounts = Object.fromEntries(Object.keys(STATUS).map(key => [key, items.filter(item => (item.status || 'planned') === key).length]))
   const shown = filter === 'all' ? items : items.filter(item => (item.status || 'planned') === filter)
   const mapped = shown.filter(item => worldMapPoint(item.country))
@@ -2517,9 +2590,9 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
   }, { cities: 0, places: 0 })
 
   return html`
-    <${Modal} title="خريطة العالم 🌍" sub="اللون يوضح حالة كل دولة — اضغطوا على الدولة لفتح تفاصيلها وخطتها" onClose=${onClose}>
+    <${Modal} title="خريطة العالم 🌍" sub="اللون يوضح حالة كل وجهة — اضغطوا على الوجهة لفتح تفاصيلها وخطتها" onClose=${onClose}>
       <div class="world-map-kpis">
-        <div class="world-map-kpi"><b>${items.length}</b><small>دول مسجلة</small></div>
+        <div class="world-map-kpi"><b>${items.length}</b><small>وجهات مسجلة</small></div>
         <div class="world-map-kpi"><b>${statusCounts.visited || 0}</b><small>تمت زيارتها</small></div>
         <div class="world-map-kpi"><b>${statusCounts.soon || 0}</b><small>قريباً</small></div>
         <div class="world-map-kpi"><b>${stats.places}</b><small>أماكن محفوظة</small></div>
@@ -2533,15 +2606,8 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
         <svg class="world-map-svg" viewBox="0 0 1000 520" role="img" aria-label="خريطة العالم مع وجهات بيتنا">
           <rect class="world-map-ocean" x="0" y="0" width="1000" height="520" rx="24" />
           <path class="world-map-grid" d="M0 104H1000 M0 208H1000 M0 312H1000 M0 416H1000 M200 0V520 M400 0V520 M600 0V520 M800 0V520" />
-          <g class="world-map-land">
-            <path d="M78 124C113 91 179 73 235 87L282 108 302 137 275 158 251 171 243 201 216 218 196 247 169 230 157 204 124 190 101 166Z" />
-            <path d="M277 282L315 297 339 337 351 383 335 438 307 474 282 443 276 399 258 360Z" />
-            <path d="M447 116L480 94 523 91 557 105 591 95 629 100 662 112 702 116 733 132 777 141 817 158 852 181 841 208 809 218 783 207 753 224 723 215 691 229 660 220 633 232 606 218 577 220 551 203 521 198 501 177 473 171 455 148Z" />
-            <path d="M470 205L510 201 545 219 562 258 557 300 542 338 519 382 490 371 469 335 456 287 448 245Z" />
-            <path d="M714 331L755 321 802 327 846 344 875 373 868 404 839 429 797 438 753 424 721 404 702 369Z" />
-            <path d="M865 142L887 132 907 143 899 164 878 167Z" />
-            <path d="M428 384L470 394 519 406 579 414 642 423 705 432 768 444 830 455 890 466 954 476 954 520 408 520Z" />
-          </g>
+          ${mapPaths.map(path => html`<path class="world-map-country" key=${path.id} d=${path.d} />`)}
+          ${mapState !== 'ready' && html`<text class="world-map-message" x="500" y="260" textAnchor="middle">${mapState === 'loading' ? 'جاري تحميل خريطة العالم…' : 'تعذر تحميل الخريطة — التفاصيل محفوظة أسفلها'}</text>`}
           ${mapped.map((dest, index) => {
             const base = worldMapPoint(dest.country)
             const same = mapped.slice(0, index).filter(item => worldMapPoint(item.country)?.x === base.x && worldMapPoint(item.country)?.y === base.y).length
@@ -2587,7 +2653,7 @@ function WorldMap({ items, onClose, onOpenCountry, onStatus }) {
           `
         })}</div>`
         : html`<div class="world-map-empty">ما سجلتوا أي دولة بهذه الحالة بعد.<br />أضيفوا وجهة من قسم السفر وبتظهر هنا مباشرة.</div>`}
-      ${unmapped.length > 0 && html`<p class="world-unmapped">الدول غير الظاهرة كنقطة على الخريطة: ${unmapped.map(item => item.country).join('، ')} — تفاصيلها وحالتها محفوظة في القائمة فوق.</p>`}
+      ${unmapped.length > 0 && html`<p class="world-unmapped">الوجهات غير الظاهرة كنقطة على الخريطة: ${unmapped.map(item => item.country).join('، ')} — تفاصيلها وحالتها محفوظة في القائمة فوق.</p>`}
     <//>
   `
 }
