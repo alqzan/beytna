@@ -131,6 +131,7 @@ try {
   await pageA.click('button[title="بحث"]')
   await pageA.fill('input[placeholder="وش تدورون عليه؟"]', 'تأكيد خطة السفر')
   await pageA.waitForSelector('text=تأكيد خطة السفر', { timeout: 10000 })
+  await pageA.locator('.overlay').last().locator('.search-result').first().click()
   log('shared tools: today dashboard, task, recurring-reminder flow, vote, template, and global search')
 
   await pageA.click('.nav-btn >> text=المقاضي')
